@@ -103,10 +103,21 @@ df_imgs.set_index('image_name')
 
 # df_imgs = df_imgs.sort_values(by=['time', 'id']).drop_duplicates(
 #     subset=['time', 'id'])
+# year = df_ann['time.year']
+# month = df_ann['time.month']
+# day = df_ann['time.day']
+# min = df_ann['time.min']
+# sec = df_ann['time.sec']
+# msec = df_ann['time.ms']
+# print(year.values)
+# df_ann['datetime'] = pd.Timestamp(
+#     str(year.values) + '-' + str(month.values) + '-' + str(day.values))
+# # 'time.year', 'time.month', 'time.day', 'time.hour', 'time.min', 'time.sec')
+
+# print(df_ann['datetime'])
+
 
 df_merge = pd.merge(df_ann, df_imgs, how='inner', on='image_name')
-
-
 df_grp = df_merge.groupby(
     by=['time.year', 'time.month', 'time.day', 'time.hour', 'time.min', 'time.sec'])
 print("Date grouping: /n")
