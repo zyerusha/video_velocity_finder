@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from numpy.core.numeric import True_
 from numpy.lib.arraysetops import unique
 import pandas as pd
 import glob
@@ -7,16 +8,46 @@ import os
 import json
 import datetime
 
-make_video = False
+make_video = True
 dataset_dir_path = '../DataSets/Video/AU-AIR-2019/'
 
 annotations_path = dataset_dir_path + 'auair2019annotations/'
 image_path = dataset_dir_path + 'auair2019data/images/'
 annotations_file = annotations_path + 'annotations.json'
 image_files = image_path + '*.jpg'
+video_ext = '.avi'
 
 
-def CreateVideo(images, fps, video_name, video_frame_limit=3000):
+def CollectingImages(count, total_cnt):
+    print(f"Collecting {count} / {total_cnt} images...")
+    img_array = []
+    for i in range(count):
+        img = cv2.imread(images.iloc[i])
+        height, width, layers = img.shape
+        image_size = (width, height)
+        img_array.append(img)
+        if((i % 200) == 0):
+            print(str(round((i/count) * 100)) + ' %')
+
+    return img_array, image_size
+
+
+def CombineImages(img_array, video_name, fps, size):
+    print("Combining images to: " + video_name)
+    out = cv2.VideoWriter(
+        video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+
+    image_count = len(img_array)
+    for i in range(image_count):
+        out.write(img_array[i])
+        if((i % 200) == 0):
+            print(str(round((i/image_count) * 100)) + ' %')
+
+    out.release()
+    print("Created video: " + video_name)
+
+
+def CreateVideo(images, fps, video_name, video_ext, video_frame_limit=3000):
     total_cnt = len(images)
 
     print(f"Found {total_cnt} images for this video recording.")
@@ -36,37 +67,17 @@ def CreateVideo(images, fps, video_name, video_frame_limit=3000):
 
         remaining_count -= max(image_count, 0)  # keep it positive
 
-        print(f"Collecting {image_count} / {total_cnt} images...")
-        img_array = []
-        for i in range(image_count):
-            img = cv2.imread(images.iloc[i])
-            height, width, layers = img.shape
-            size = (width, height)
-            img_array.append(img)
-            if((i % 200) == 0):
-                print(str(round((i/image_count) * 100)) + ' %')
+        img_array, img_size = CollectingImages(image_count, total_cnt)
 
         if(split_video):
-            full_video_name = video_name + '_' + str(video_idx) + '.avi'
+            full_video_name = video_name + '_' + str(video_idx) + video_ext
         else:
-            full_video_name = video_name + '.avi'
+            full_video_name = video_name + video_ext
 
         if os.path.exists(full_video_name):
             os.remove(full_video_name)
 
-        print("Combining images to: " + full_video_name)
-        out = cv2.VideoWriter(
-            full_video_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-
-        image_count = len(img_array)
-        for i in range(image_count):
-            out.write(img_array[i])
-            if((i % 200) == 0):
-                print(str(round((i/image_count) * 100)) + ' %')
-
-        out.release()
-        print("Created video: " + full_video_name)
-
+        CombineImages(img_array, full_video_name, fps, img_size)
 
 # def AddDateTime(names):
 #     s = pd.Series(names.str.split('_'))
@@ -77,6 +88,7 @@ def CreateVideo(images, fps, video_name, video_frame_limit=3000):
 #     df['id'] = df_tmp2['id']
 #     df.set_index('image_name')
 
+
 # using annotations:
 print("Loading annotations...")
 data = json.load((open(annotations_file)))
@@ -84,6 +96,8 @@ df_ann = pd.json_normalize(data, 'annotations').sort_values(by=['image_name'])
 # df_ann = pd.json_normalize(
 #     data, ['annotations', 'bbox']).sort_values(by=['image_name'])
 print(df_ann)
+print(
+    f'Number for annotation duplicates is {df_ann.image_name.duplicated().sum()}')
 
 # df_ann_date = df_ann[df_ann['image_name'].str.contains(search_date)]
 
@@ -100,6 +114,8 @@ df_tmp2 = pd.DataFrame(s.tolist(), columns=['id', 'jpg'])
 df_imgs['time'] = df_tmp['time']
 df_imgs['id'] = df_tmp2['id']
 df_imgs.set_index('image_name')
+print(
+    f'Number for image duplicates is {df_imgs.image_name.duplicated().sum()}')
 
 # df_imgs = df_imgs.sort_values(by=['time', 'id']).drop_duplicates(
 #     subset=['time', 'id'])
@@ -130,7 +146,7 @@ print(unique_dates)
 
 
 # do for loop here on date
-for i in range(0, video_counts):
+for i in range(0, 1):
     search_date = unique_dates[i]
     print('####### START #########')
     print(f'Video # {i + 1} / {video_counts}')
@@ -145,9 +161,9 @@ for i in range(0, video_counts):
     print(f'fps: {fps}')
     if(make_video):
         video_name = 'video_' + search_date
-        if os.path.exists(video_name):
-            os.remove(video_name)
+        if os.path.exists(video_name + video_ext):
+            os.remove(video_name + video_ext)
 
-        CreateVideo(images, fps, video_name, 3000)
+        CreateVideo(images, fps, video_name, video_ext, 3000)
 
     print('######## END ##########')
