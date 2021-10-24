@@ -1,5 +1,4 @@
-# video_velocity_finder: 
-### Finding the velocity of object within a video
+# Finding the velocity of object within a video
 
 ### Dataset used to train model:
 AU-AIR: Multi-modal UAV Dataset for Low Altitude Traffic Surveillance
