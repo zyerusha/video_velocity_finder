@@ -8,8 +8,8 @@ import os
 import json
 import datetime
 
-make_video = True
-dataset_dir_path = '../DataSets/Video/AU-AIR-2019/'
+make_video = False
+dataset_dir_path = './datasets/au-air/'
 
 annotations_path = dataset_dir_path + 'auair2019annotations/'
 image_path = dataset_dir_path + 'auair2019data/images/'
@@ -20,16 +20,16 @@ image_ext = '.jpg'
 image_files = image_path + '*' + image_ext
 
 
-def CollectingImages(count, total_cnt):
-    print(f"Collecting {count} / {total_cnt} images...")
+def CollectingImages(cnt, remaining_cnt):
+    print(f"Collecting {cnt} / {remaining_cnt} images...")
     img_array = []
-    for i in range(count):
+    for i in range(cnt):
         img = cv2.imread(images.iloc[i])
         height, width, layers = img.shape
         image_size = (width, height)
         img_array.append(img)
         if((i % 200) == 0):
-            print(str(round((i/count) * 100)) + ' %')
+            print(str(round((i/cnt) * 100)) + ' %')
 
     return img_array, image_size
 
@@ -54,22 +54,20 @@ def CreateVideo(images, fps, video_name, video_ext, video_frame_limit=3000):
 
     print(f"Found {total_cnt} images for this video recording.")
     image_count = total_cnt
-    remaining_count = total_cnt
+    remaining_cnt = total_cnt
     video_idx = 0
     split_video = False
-    while(remaining_count > 0):
+    while(remaining_cnt > 0):
         # limit size of videos
-        if(remaining_count > video_frame_limit):
+        if(remaining_cnt > video_frame_limit):
             image_count = video_frame_limit
             split_video = True
         else:
-            image_count = remaining_count
+            image_count = remaining_cnt
 
         video_idx += 1
-
-        remaining_count -= max(image_count, 0)  # keep it positive
-
-        img_array, img_size = CollectingImages(image_count, total_cnt)
+        img_array, img_size = CollectingImages(image_count, remaining_cnt)
+        remaining_cnt -= max(image_count, 0)  # keep it positive
 
         if(split_video):
             full_video_name = video_name + '_' + str(video_idx) + video_ext
@@ -143,28 +141,29 @@ print("Date grouping: /n")
 print(df_grp.size())
 
 unique_dates = unique(df_full['time'])
-video_counts = len(unique_dates)
-print(f"There are {video_counts} video recordings:")
+recording_cnt = len(unique_dates)
+print(f"There are {recording_cnt} video recordings:")
 print(unique_dates)
 
 
 # do for loop here on date
-# for i in range(0, video_counts):
-for i in range(0, video_counts):
+cnt = recording_cnt
+for i in range(0, cnt):
     search_date = unique_dates[i]
     print('####### START #########')
-    print(f'Video # {i + 1} / {video_counts}')
+    print(f'Video # {i + 1} / {cnt}')
     print(f'Selecting date: {search_date}')
-    df_date = df_full[df_full['image_name'].str.contains(search_date)]
-    images = pd.Series(df_date['full_path'].values,
-                       index=df_date['full_path'])
+    df_recording = df_full[df_full['image_name'].str.contains(search_date)]
+    images = pd.Series(df_recording['full_path'].values,
+                       index=df_recording['full_path'])
 
 # Calculate Frames Per Second
-    timespan_ms = df_date['time.ms'].iloc[-1] - df_date['time.ms'].iloc[0]
+    timespan_ms = df_recording['time.ms'].iloc[-1] - \
+        df_recording['time.ms'].iloc[0]
     timespan_sec = timespan_ms/1000
     print(
         f'Recording duration is {timespan_sec} sec')
-    fps = len(df_date)/timespan_sec
+    fps = len(df_recording)/timespan_sec
     print(f'fps: {fps}')
 
     if(make_video):
