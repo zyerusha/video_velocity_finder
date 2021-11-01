@@ -151,19 +151,57 @@ class VideoUtils:
         return img
 
     def AnnotateVideo(self, output_dir, orig_v_filename, new_v_filename, annotations, fps, v_max_frames=3000):
-        _frame_names_array, cnt = self.SplitVideoToFrames(
-            output_dir, orig_v_filename)
+        vidcap = cv2.VideoCapture(orig_v_filename)
+        success, image = vidcap.read()
+        count = 0
+        images = []
+        img_array = np.array(images)
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
 
-        for img_idx in range(len(_frame_names_array)):
-            frame_name = _frame_names_array[img_idx]
-            bbox_data_for_img = annotations[img_idx]
-            self.AddAllFrameAnnotations(frame_name, bbox_data_for_img, 2)
+        while (success):
+            save_img = output_dir + "frame%d.jpg" % count
+            if((count % 25) == 0):
+                print(f'Created {count} new frames')
+            # cv2.imwrite(save_img, image)     # save frame as JPEG file
+            success, image = vidcap.read()
+            bbox_data_for_img = annotations[count]
+
+            if(success):
+                count += 1
+                # Add all annotations to the frame
+                for j in range(len(bbox_data_for_img)):
+                    updated_img = self.AddSingleAnnotation(
+                        image, bbox_data_for_img[j], 2)
+
+                # added annotated image to array
+                img_array = np.append(img_array, save_img)
+                cv2.imwrite(save_img, updated_img)
+
+        vidcap.release()  # done with original video
 
         full_filename = output_dir + new_v_filename
         if os.path.exists(full_filename):
             os.remove(full_filename)
 
-        self.CreateVideo(_frame_names_array, fps, full_filename, v_max_frames)
+        self.CreateVideo(img_array, fps, full_filename, v_max_frames)
+        cv2.destroyAllWindows()
+
+    # def AnnotateVideo(self, output_dir, orig_v_filename, new_v_filename, annotations, fps, v_max_frames=3000):
+    #     _frame_names_array, cnt = self.SplitVideoToFrames(
+    #         output_dir, orig_v_filename)
+
+    #     for img_idx in range(len(_frame_names_array)):
+    #         frame_name = _frame_names_array[img_idx]
+    #         bbox_data_for_img = annotations[img_idx]
+    #         self.AddAllFrameAnnotations(frame_name, bbox_data_for_img, 2)
+
+    #     full_filename = output_dir + new_v_filename
+    #     if os.path.exists(full_filename):
+    #         os.remove(full_filename)
+
+    #     self.CreateVideo(_frame_names_array, fps, full_filename, v_max_frames)
 
 
 class DirectoryUtils:
