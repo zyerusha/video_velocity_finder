@@ -13,6 +13,7 @@ class VideoUtils:
 
     def __init__(self, _categories=[]):
         self.annotationCategoryDict = _categories
+        print(self.annotationCategoryDict)
         return None
 
     def CombineImages(self, img_array, full_filename, fps, frame_size):
@@ -84,34 +85,34 @@ class VideoUtils:
                 img, bbox_data[j], bbox_thickness)
         return img
 
-    def AddSingleAnnotation(self, img, bbox, thickness):
-        top = int(bbox['bb_Top'])
-        left = int(bbox['bb_Left'])
-        bottom = int(bbox['bb_Bottom'])
-        right = int(bbox['bb_Right'])
-        categories = 0  # bbox['class']
+    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, thickness):
+        top = int(bb_top)
+        left = int(bb_left)
+        bottom = int(bb_bottom)
+        right = int(bb_right)
         center_x = int((left + right)/2)
         center_y = int((top + bottom)/2)
 
         color = (0, 255, 255)
         text = ''
         if(bool(self.annotationCategoryDict)):
-            text = self.annotationCategoryDict[categories]
-            if (categories == 0):
+            text = category
+            category_code = int(self.annotationCategoryDict[category])
+            if (category_code == 0):
                 color = (255, 0, 255)
-            elif (categories == 1):
+            elif (category_code == 1):
                 color = (255, 255, 0)
-            elif (categories == 2):
+            elif (category_code == 2):
                 color = (255, 0, 0)
-            elif (categories == 3):
+            elif (category_code == 3):
                 color = (0, 255, 0)
-            elif (categories == 4):
+            elif (category_code == 4):
                 color = (0, 0, 255)
-            elif (categories == 5):
+            elif (category_code == 5):
                 color = (255, 255, 0)
-            elif (categories == 6):
+            elif (category_code == 6):
                 color = (255, 0, 255)
-            elif (categories == 7):
+            elif (category_code == 7):
                 color = (0, 255, 255)
             else:
                 color = (255, 255, 255)
