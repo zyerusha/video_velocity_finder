@@ -99,7 +99,7 @@ class VideoUtils:
             text = category
             category_code = int(self.annotationCategoryDict[category])
             if (category_code == 0):
-                color = (255, 0, 255)
+                color = (0, 255, 255)
             elif (category_code == 1):
                 color = (255, 255, 0)
             elif (category_code == 2):
@@ -113,7 +113,7 @@ class VideoUtils:
             elif (category_code == 6):
                 color = (255, 0, 255)
             elif (category_code == 7):
-                color = (0, 255, 255)
+                color = (255, 0, 255)
             else:
                 color = (255, 255, 255)
 
