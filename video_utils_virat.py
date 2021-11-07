@@ -124,49 +124,83 @@ class VideoUtils:
                     cv2.FONT_HERSHEY_COMPLEX, 0.75, color, 1)
         return img
 
-    def AnnotateVideo(self, output_dir, orig_v_full_path, new_v_filename, annotations, fps):
+    def AddAllFrameAnnotations(self, img, df_ann, box_thickness):
+        for j in range(len(df_ann)):
+            bb_top = df_ann.iloc[j]['bb_top']
+            bb_left = df_ann.iloc[j]['bb_left']
+            bb_bottom = df_ann.iloc[j]['bb_bottom']
+            bb_right = df_ann.iloc[j]['bb_right']
+            category = df_ann.iloc[j]['category']
+            img = self.AddSingleAnnotation(
+                img, bb_top, bb_left, bb_bottom, bb_right, category, box_thickness)
+        return img
+
+    def AnnotateVideo(self, output_dir, orig_v_full_path, new_v_filename, df_ann, start_time=0, duration=[]):
         # Open original video
         vidcap = cv2.VideoCapture(orig_v_full_path)
-        count = 0
-        images = []
-        img_array = np.array(images)
+        if vidcap.isOpened():
 
-        # Create directory to store new video
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        os.makedirs(output_dir)
+            fps = vidcap.get(cv2.CAP_PROP_FPS)  # CV_CAP_PROP_FPS = Frame rate.
+            # CV_CAP_PROP_FRAME_COUNT = Number of frames in the video file.
+            total_frames = vidcap.get(cv2.CAP_PROP_FRAME_COUNT)
+            print("Total frames in video: %2d @ %5.2f frames/sec" %
+                  (total_frames, fps))
+            width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            frame_size = (width, height)
 
-        while (True):
-            success, img = vidcap.read()
-            if(success):
-                # Creating a new image name
-                tmp_img_name = output_dir + "frame%d.jpg" % count
-                # Added new image to array of images that will construct the final video
-                img_array = np.append(img_array, tmp_img_name)
-
-                if((count % 25) == 0):
-                    print(f'Created {count} new frames')
-
-                # All bounding box info for this frame
-                # Add all annotations to the frame
-                img = self.AddAllFrameAnnotations(
-                    img, annotations[count], 2)
-
-                # save the image with all its annotations
-                cv2.imwrite(tmp_img_name, img)
-                count += 1
-
+            start_count = int(start_time * fps)
+            count = start_count
+            if(bool(duration)):
+                end_count = int((duration + start_time) * fps)
             else:
-                break
+                end_count = total_frames - start_count
+                print('running full video')
 
-        vidcap.release()  # done with original video
+            # setting CV_CAP_PROP_POS_FRAMES at count
+            vidcap.set(cv2.CAP_PROP_POS_FRAMES, count)
+            timestamp = str(int(start_time)) + '-' + \
+                str(int(end_count / fps)) + '_'
+            full_filename = output_dir + timestamp + new_v_filename
+            if os.path.exists(full_filename):
+                os.remove(full_filename)
 
-        full_filename = output_dir + new_v_filename
-        if os.path.exists(full_filename):
-            os.remove(full_filename)
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            vidout = cv2.VideoWriter(
+                full_filename, fourcc, int(fps), frame_size)
 
-        self.CreateVideo(img_array, fps, full_filename, v_max_frames)
-        cv2.destroyAllWindows()
+            while (True):
+                success, img = vidcap.read()
+                if(success):
+                    height, width, layers = img.shape
+                    image_size = (width, height)
+
+                    if((count % 25) == 0):
+                        percent_complete = (
+                            (count-start_count)/(end_count-start_count))*100
+                        print(
+                            f"Created frame id {count:2d}, {count/fps:0.2f} sec in video; completed:  {percent_complete:0.1f} %")
+
+                    # All bounding box info for this frame
+                    # Add all annotations to the frame
+                    df_img = df_ann[df_ann['frame_id'] == count]
+                    img = self.AddAllFrameAnnotations(img, df_img, 2)
+                    vidout.write(img)
+
+                    count += 1
+
+                    if(count > end_count):
+                        break
+
+                else:
+                    break
+
+            vidcap.release()  # done with original video
+            vidout.release()
+
+            print("Done: Created video: " + full_filename)
+
+            cv2.destroyAllWindows()
 
 
 class DirectoryUtils:
