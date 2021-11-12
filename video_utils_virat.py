@@ -85,7 +85,7 @@ class VideoUtils:
                 img, bbox_data[j], bbox_thickness)
         return img
 
-    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, thickness):
+    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, thickness):
         top = int(bb_top)
         left = int(bb_left)
         bottom = int(bb_bottom)
@@ -96,7 +96,7 @@ class VideoUtils:
         color = (0, 255, 255)
         text = ''
         if(bool(self.annotationCategoryDict)):
-            text = category
+            text = category + ' ' + str(object_id)
             category_code = int(self.annotationCategoryDict[category])
             if (category_code == 0):
                 color = (0, 255, 255)
@@ -120,8 +120,19 @@ class VideoUtils:
         cv2.rectangle(img, (left, top), (right, bottom), color, thickness)
         cv2.circle(img, (center_x, center_y), 3, (0, 0, 255), -1)
         # print(categories)
-        cv2.putText(img, text, (right+10, top),
-                    cv2.FONT_HERSHEY_COMPLEX, 0.75, color, 1)
+
+        if(vel != None):
+            text = text + '\n' + str(vel)
+
+        fontscale = 0.5
+        label_width, label_height = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_COMPLEX, fontscale, 1)[0]
+
+        for i, line in enumerate(text.split('\n')):
+            y = top + i*(label_height + 5)
+            cv2.putText(img, line, (right+10, y),
+                        cv2.FONT_HERSHEY_COMPLEX, fontscale, color, 1)
+
         return img
 
     def AddAllFrameAnnotations(self, img, df_ann, box_thickness):
@@ -131,8 +142,10 @@ class VideoUtils:
             bb_bottom = df_ann.iloc[j]['bb_bottom']
             bb_right = df_ann.iloc[j]['bb_right']
             category = df_ann.iloc[j]['category']
+            object_id = df_ann.iloc[j]['object_id']
+            vel = df_ann.iloc[j]['vel']
             img = self.AddSingleAnnotation(
-                img, bb_top, bb_left, bb_bottom, bb_right, category, box_thickness)
+                img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, box_thickness)
         return img
 
     def AnnotateVideo(self, output_dir, orig_v_full_path, new_v_filename, df_ann, start_time=0, duration=[]):
@@ -150,13 +163,19 @@ class VideoUtils:
             frame_size = (width, height)
 
             start_count = int(start_time * fps)
-            count = start_count
+
+            if(total_frames < start_count):
+                start_count = 0
+                start_time = 0
+
             if(bool(duration)):
                 end_count = int((duration + start_time) * fps)
             else:
                 end_count = total_frames - start_count
                 print('running full video')
 
+            count = start_count
+            print(total_frames, start_count, end_count)
             # setting CV_CAP_PROP_POS_FRAMES at count
             vidcap.set(cv2.CAP_PROP_POS_FRAMES, count)
             timestamp = str(int(start_time)) + '-' + \
