@@ -94,16 +94,16 @@ class VideoUtils:
         center_y = int((top + bottom)/2)
 
         color = (0, 255, 255)
-        text = ''
+        text = 'Id: ' + str(object_id)
         if(bool(self.annotationCategoryDict)):
-            text = category + ' ' + str(object_id)
+            text = text + '\n' + category
             category_code = int(self.annotationCategoryDict[category])
             if (category_code == 0):
                 color = (0, 255, 255)
             elif (category_code == 1):
-                color = (255, 255, 0)
-            elif (category_code == 2):
                 color = (255, 0, 0)
+            elif (category_code == 2):
+                color = (255, 255, 0)
             elif (category_code == 3):
                 color = (0, 255, 0)
             elif (category_code == 4):
@@ -142,7 +142,7 @@ class VideoUtils:
             bb_bottom = df_ann.iloc[j]['bb_bottom']
             bb_right = df_ann.iloc[j]['bb_right']
             category = df_ann.iloc[j]['category']
-            object_id = df_ann.iloc[j]['object_id']
+            object_id = int(df_ann.iloc[j]['object_id'])
             vel = df_ann.iloc[j]['vel']
             img = self.AddSingleAnnotation(
                 img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, box_thickness)
