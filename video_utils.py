@@ -3,7 +3,7 @@ import os
 import shutil
 import pandas as pd
 import numpy as np
-
+ 
 
 class VideoUtils:
     '''Utilities supporting the video and image manipulation'''

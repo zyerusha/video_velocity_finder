@@ -6,7 +6,8 @@ import numpy as np
 import json
 from pathlib import Path
 from time import time
-from PIL import ImageGrab
+#from PIL import ImageGrab #from pip install pillow
+import pyscreenshot as ImageGrab
 # from video_utils_virat import YoloUtils
 # from video_utils_virat import VideoUtils
 
@@ -28,15 +29,18 @@ class YoloUtils:
     def YoloOnVideo(self, yolo_weight_file, yolo_cfg_file, yolo_names_file,  output_dir, orig_v_full_path, new_v_filename, start_time_sec=0, duration_sec=None,  save_images=False):
         vUtils = VideoUtils()
 
+
         if (not orig_v_full_path):
             raise Exception(f"File not found: {orig_v_full_path}")
 
         self.PrepYolo(yolo_weight_file, yolo_cfg_file, yolo_names_file)
-
+        print(orig_v_full_path)
         # Open original video
+            
+        bbox_data = {}
         video_in = cv2.VideoCapture(orig_v_full_path)
         if video_in.isOpened():
-
+            print("opened video")
             fps, total_frames, frame_size = vUtils.GetVideoData(video_in)
             start_count, end_count = vUtils.GetStartEndCount(
                 fps, total_frames, start_time_sec, duration_sec)
@@ -54,6 +58,7 @@ class YoloUtils:
             video_out = cv2.VideoWriter(
                 full_filename, fourcc, int(fps), frame_size)
 
+            i = 0
             while (True):
                 success, img = video_in.read()
                 if(success):
@@ -66,8 +71,9 @@ class YoloUtils:
                         print(
                             f"Created frame id {count:2d}, {count/fps:0.2f} sec in video; completed:  {percent_complete:0.1f} %")
 
-                    img = self.DoYolo(img)
-
+                    img, bbox = self.DoYolo(img)
+                    bbox_data[i] = bbox
+                    i += 1
                     video_out.write(img)
                     if(save_images):
                         cv2.imwrite(output_dir + str(count) + ".jpg", img)
@@ -85,6 +91,8 @@ class YoloUtils:
             print("Done: Created video: " + full_filename)
 
         cv2.destroyAllWindows()
+
+        return full_filename, bbox_data
 
     def PrepYolo(self, yolo_weight_file, yolo_cfg_file, yolo_names_file):
         self.yolo = cv2.dnn.readNet(yolo_weight_file, yolo_cfg_file)
@@ -129,6 +137,7 @@ class YoloUtils:
                     class_ids.append(class_id)
 
         box_cnt = 0
+        bbox_data = []
         if(len(boxes) > 0):
             indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
             font = cv2.FONT_HERSHEY_PLAIN
@@ -145,14 +154,19 @@ class YoloUtils:
                 confi = str(round(confidences[i], 2))
                 # color = colors[i]
                 cv2.rectangle(img, (left, top), (right, bottom), color, 2)
+                center_x = int((left + right)/2)
+                center_y = int((top + bottom)/2)
+                cv2.circle(img, (center_x, center_y), 3, (0, 0, 255), -1)
+
                 text = label + ' ' + confi
                 # cv2.putText(img, label + ' ' + confi,
                 #             (right + 10, top), font, 2, color, 2)
                 img = vUtils.PrintText(img, text, right, top, 10, 1,
                                        cv2.FONT_HERSHEY_COMPLEX, 0.5, color)
                 box_cnt += 1
+                bbox_data.append([left, top, right, bottom])
 
-        return img
+        return img, bbox_data
 
     def YoloOnScreen(self, yolo_weight_file, yolo_cfg_file, yolo_names_file, x1, y1, x2, y2):
         vUtils = VideoUtils()
@@ -299,6 +313,7 @@ class VideoUtils:
         center_x = int((left + right)/2)
         center_y = int((top + bottom)/2)
 
+        # print(f'{left},{top},{right},{bottom}')
         color = (0, 255, 255)
         text = 'Id: ' + str(object_id)
         if(bool(self.annotationCategoryDict)):
@@ -324,7 +339,7 @@ class VideoUtils:
                 color = (255, 255, 255)
 
         cv2.rectangle(img, (left, top), (right, bottom), color, thickness)
-        cv2.circle(img, (center_x, center_y), 3, (0, 0, 255), -1)
+        cv2.circle(img, (center_x, center_y), 3, (255, 0, 0), -1)
         # print(categories)
 
         if(vel != None):
@@ -346,6 +361,7 @@ class VideoUtils:
         return img
 
     def AddAllFrameAnnotations(self, img, df_ann, box_thickness):
+        bbox_data = []
         for j in range(len(df_ann)):
             bb_top = df_ann.iloc[j]['bb_top']
             bb_left = df_ann.iloc[j]['bb_left']
@@ -356,7 +372,10 @@ class VideoUtils:
             vel = df_ann.iloc[j]['vel']
             img = self.AddSingleAnnotation(
                 img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, box_thickness)
-        return img
+
+            bbox_data.append([bb_left, bb_top, bb_right, bb_bottom])
+
+        return img, bbox_data
 
     def GetVideoData(self, vidcap):
         fps = vidcap.get(cv2.CAP_PROP_FPS)  # CV_CAP_PROP_FPS = Frame rate.
@@ -385,6 +404,7 @@ class VideoUtils:
         if (not orig_v_full_path):
             raise Exception(f"File not found: {orig_v_full_path}")
 
+        bbox_data = {}
         # Open original video
         video_in = cv2.VideoCapture(orig_v_full_path)
         if video_in.isOpened():
@@ -406,6 +426,7 @@ class VideoUtils:
             video_out = cv2.VideoWriter(
                 full_filename, fourcc, int(fps), frame_size)
 
+            i = 0
             while (True):
                 success, img = video_in.read()
                 if(success):
@@ -421,8 +442,9 @@ class VideoUtils:
                     # All bounding box info for this frame
                     # Add all annotations to the frame
                     df_img = df_ann[df_ann['frame_id'] == count]
-                    img = self.AddAllFrameAnnotations(img, df_img, 2)
-
+                    img, bbox = self.AddAllFrameAnnotations(img, df_img, 2)
+                    bbox_data[i] = bbox
+                    i += 1
                     video_out.write(img)
                     if(save_images):
                         cv2.imwrite(output_dir + str(count) + ".jpg", img)
@@ -440,6 +462,7 @@ class VideoUtils:
             print("Done: Created video: " + full_filename)
 
         cv2.destroyAllWindows()
+        return full_filename, bbox_data
 
     def ChangeVideoFrameRate(self, full_orig_name, full_new_name, desired_fps, start_time_sec=0, duration_sec=None):
         if (not full_orig_name):
@@ -533,6 +556,35 @@ class ImageUtils:
             ver = hor
         return ver
 
+class Bbox:
+    def __init__(self, x1, y1, x2, y2):
+        self.left = min(x1, x2)
+        self.right = max(x1, x2)
+        self.top = min(y1, y2)
+        self.bottom = max(y1, y2)
+        self.width = abs(self.left - self.right)
+        self.height = abs(self.bottom - self.top)
+        self.center_x = int((self.left + self.right)/2)
+        self.center_x = int((self.top + self.bottom)/2)
+
+    @property
+    def area(self):
+        return (self.width + 1) * (self.height + 1)
+
+    def UnionArea(self, bbox):
+        intersection = self.IntersectionArea(bbox)
+        return (self.area + bbox.area - intersection)
+
+    def IntersectionArea(self, bbox):
+        dx = min(self.right, bbox.right) - max(self.left, bbox.left) + 1
+        dy = min(self.bottom, bbox.bottom) - max(self.top, bbox.top) + 1
+        area_of_intersection = max(0, dx) * max(0, dy)
+        return area_of_intersection
+
+    def IOU(self, bbox):
+        '''Returns intersection over union'''
+        iou = self.IntersectionArea(bbox) / self.UnionArea(bbox)
+        return iou
 
 class DirectoryUtils:
     '''Utilities supporting files and folders'''
