@@ -1,4 +1,4 @@
-opencv-python==4.1.1.26
+opencv-python
 tensorflow==2.3.0
 lxml
 tqdm
@@ -6,3 +6,4 @@ absl-py
 easydict
 matplotlib
 pillow
+pyscreenshot
