@@ -71,7 +71,7 @@ class YoloUtils:
                         print(
                             f"Created frame id {count:2d}, {count/fps:0.2f} sec in video; completed:  {percent_complete:0.1f} %")
 
-                    img, bbox = self.DoYolo(img)
+                    img, bbox = self.DoYolo(img, 0.5, 0.3)
                     bbox_data[i] = bbox
                     i += 1
                     video_out.write(img)
@@ -99,7 +99,11 @@ class YoloUtils:
         with open(yolo_names_file, "r") as f:
             self.yolo_classes = f.read().splitlines()
 
-    def DoYolo(self, img):
+
+    def DoYolo(self, img, score_threshold, nms_threshold):
+        # score_threshold	a threshold used to filter boxes by score.
+        # nms_threshold	a threshold used in non maximum suppression.
+
         vUtils = VideoUtils()
 
         if self.yolo == None:
@@ -139,10 +143,10 @@ class YoloUtils:
         box_cnt = 0
         bbox_data = []
         if(len(boxes) > 0):
-            indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+            indexes = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold, nms_threshold)
             font = cv2.FONT_HERSHEY_PLAIN
             # color = np.random.uniform(0, 255, size=(len(boxes), 3))
-            color = (0, 255, 255)
+            color = (255, 0, 255)
             for i in indexes.flatten():
                 x, y, w, h = boxes[i]
                 left = int((x - w/2)*width)
@@ -161,7 +165,7 @@ class YoloUtils:
                 text = label + ' ' + confi
                 # cv2.putText(img, label + ' ' + confi,
                 #             (right + 10, top), font, 2, color, 2)
-                img = vUtils.PrintText(img, text, right, top, 10, 1,
+                img = vUtils.PrintText(img, text, right, bottom, 10, 1,
                                        cv2.FONT_HERSHEY_COMPLEX, 0.5, color)
                 box_cnt += 1
                 bbox_data.append([left, top, right, bottom])
@@ -178,7 +182,7 @@ class YoloUtils:
             frame = vUtils.WindowCapture(x1, y1, x2, y2)
             frame = cv2.resize(frame, None, fx=0.5, fy=0.5,
                                interpolation=cv2.INTER_AREA)
-            frame = self.DoYolo(frame)
+            frame = self.DoYolo(frame, 0.5, 0.3)
             cv2.imshow("Yolo", frame)
             fps = 1/(time() - loop_time)
             print(f'fps {fps:0.2f}')
@@ -213,7 +217,7 @@ class YoloUtils:
             success, frame = vidcap.read()
             frame = cv2.resize(frame, None, fx=0.5, fy=0.5,
                                interpolation=cv2.INTER_AREA)
-            frame = self.DoYolo(frame)
+            frame = self.DoYolo(frame, 0.5, 0.3)
             cv2.imshow("Yolo", frame)
             if(full_filename != None):
                 vidout.write(frame)
@@ -350,7 +354,7 @@ class VideoUtils:
 
         return img
 
-    def PrintText(self, img, text, x, y, offset, thickness, font, fontscale, color):
+    def PrintText(self, img, text, x, y, offset = 0, thickness = 1, font = cv2.FONT_HERSHEY_COMPLEX, fontscale = 0.5, color = (0, 255, 255)):
         label_width, label_height = cv2.getTextSize(
             text, font, fontscale, thickness)[0]
 
@@ -565,7 +569,7 @@ class Bbox:
         self.width = abs(self.left - self.right)
         self.height = abs(self.bottom - self.top)
         self.center_x = int((self.left + self.right)/2)
-        self.center_x = int((self.top + self.bottom)/2)
+        self.center_y = int((self.top + self.bottom)/2)
 
     @property
     def area(self):
