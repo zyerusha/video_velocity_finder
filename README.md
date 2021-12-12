@@ -12,12 +12,13 @@ https://gitlab.kitware.com/viratdata/viratannotations
 Annotations are in the format per:
 https://gitlab.kitware.com/meva/meva-data-repo/-/blob/master/documents/KPF-specification-v4.pdf
 
+# References
+
+Using forks from
+- https://github.com/nwojke/deep_sort
+- https://github.com/hunglc007/tensorflow-yolov4-tflite
 
 From https://github.com/AlexeyAB/darknet & https://github.com/pjreddie/darknet:
 - yolov3 & yolov4 weights/model
 
-From https://github.com/nwojke/deep_sort:
-- ./deep_sort directory
  
-From https://github.com/hunglc007/tensorflow-yolov4-tflite:
-- save_model.py - Converts darknet weights to tensorflow
