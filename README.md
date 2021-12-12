@@ -14,10 +14,10 @@ https://gitlab.kitware.com/meva/meva-data-repo/-/blob/master/documents/KPF-speci
 
 
 From https://github.com/AlexeyAB/darknet & https://github.com/pjreddie/darknet:
-yolov3 & yolov4 weights/model
+- yolov3 & yolov4 weights/model
 
 From https://github.com/nwojke/deep_sort:
-./deep_sort directory
+- ./deep_sort directory
  
 From https://github.com/hunglc007/tensorflow-yolov4-tflite:
-save_model.py - Converts darknet weights to tensorflow
+- save_model.py - Converts darknet weights to tensorflow
