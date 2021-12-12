@@ -1,3 +1,6 @@
 [submodule "tensorflow-yolov4-tflite"]
 	path = tensorflow-yolov4-tflite
 	url = https://github.com/zyerusha/tensorflow-yolov4-tflite
+[submodule "deep_sort"]
+	path = deep_sort
+	url = https://github.com/zyerusha/deep_sort
