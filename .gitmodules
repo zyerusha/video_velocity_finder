@@ -4,6 +4,3 @@
 [submodule "tensorflow_yolov4_tflite"]
 	path = tensorflow_yolov4_tflite
 	url = https://github.com/zyerusha/tensorflow-yolov4-tflite
-[submodule "tensorflow-yolov4-tflite"]
-	path = tensorflow-yolov4-tflite
-	url = https://github.com/zyerusha/tensorflow-yolov4-tflite
