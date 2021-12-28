@@ -4,3 +4,6 @@
 [submodule "tensorflow_yolov4_tflite"]
 	path = tensorflow_yolov4_tflite
 	url = https://github.com/zyerusha/tensorflow-yolov4-tflite
+[submodule "yolo/darknet"]
+	path = yolo/darknet
+	url = https://github.com/zyerusha/darknet
