@@ -7,3 +7,6 @@
 [submodule "yolo/darknet"]
 	path = yolo/darknet
 	url = https://github.com/zyerusha/darknet
+[submodule "yolov4-deepsort"]
+	path = yolov4-deepsort
+	url = https://github.com/zyerusha/yolov4-deepsort

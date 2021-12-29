@@ -20,4 +20,5 @@ Using forks as submodules from
 From https://github.com/AlexeyAB/darknet & https://github.com/pjreddie/darknet:
 - yolov3 & yolov4 weights/model
 
- 
+- https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
+- https://github.com/theAIGuysCode/yolov4-deepsort
