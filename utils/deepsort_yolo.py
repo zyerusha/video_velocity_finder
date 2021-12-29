@@ -3,6 +3,7 @@ import numpy as np
 from time import time
 from utils.video_utils import VideoUtils
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # deep_sort imports
 from deep_sort.deep_sort import nn_matching
@@ -29,9 +30,7 @@ class DeepsortYolo:
     def __init__(self):
         return None
 
-    def ProcessVideo(self, yolo_weight_file, yolo_names_file, orig_video, output_dir, output_video, start_time_sec=0, duration_sec=None,  save_images=False):
-        vUtils = VideoUtils()
-
+    def ProcessVideo(self, yolo_weight_file, model_filename, orig_video, output_dir, output_video, start_time_sec=0, duration_sec=None,  save_images=False):
         if (not orig_video):
             raise Exception(f"File not found: {orig_video}")
 
@@ -40,15 +39,15 @@ class DeepsortYolo:
 
         yolo_all = True
         all_classes, find_classes = self.DoYoloV4Init(yolo_all)
-        self.DoDeepsortInit()
+        self.DoDeepsortInit(model_filename)
         print(orig_video)
             
-        bbox_data = {}
+        bbox_data = pd.DataFrame()
         video_in = cv2.VideoCapture(orig_video)
         if video_in.isOpened():
             print("opened video")
-            fps, total_frames, frame_size = vUtils.GetVideoData(video_in)
-            start_count, end_count = vUtils.GetStartEndCount(
+            fps, total_frames, frame_size = VideoUtils.GetVideoData(video_in)
+            start_count, end_count = VideoUtils.GetStartEndCount(
                 fps, total_frames, start_time_sec, duration_sec)
             frame_count = start_count
 
@@ -66,9 +65,13 @@ class DeepsortYolo:
                 if(success):
 
                     bboxes, scores, names = self.DoYoloV4(frame, yolo_model, all_classes, find_classes)
-                    result, frame_bbox_list = self.DoDeepsort(frame, bboxes, scores, names)
+                    result, df_frame_data = self.DoDeepsort(frame, bboxes, scores, names)
                     cv2.putText(frame, "Object tracked: {}".format(len(names)), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 255, 0), 2)
-                    bbox_data[i] = frame_bbox_list
+                    df_frame_data['Frame'] = i
+
+                    # print(df_frame_data)
+                    bbox_data = pd.concat([bbox_data, df_frame_data])
+
                     i += 1
                     video_out.write(result)
                     if(save_images):
@@ -92,7 +95,7 @@ class DeepsortYolo:
             print("Done: Created video: " + output_video)
 
         cv2.destroyAllWindows()
-        
+
         return output_video, bbox_data
 
     def DoYoloV4Init(self, yolo_all):
@@ -157,14 +160,14 @@ class DeepsortYolo:
         bboxes, scores, names = self.SelectObjects(bboxes, scores, classes, num_objects, all_classes, find_classes)
         return bboxes, scores, names
 
-    def DoDeepsortInit(self):
+    def DoDeepsortInit(self, model_filename):
         # Definition of the parameters
         max_cosine_distance = 0.4
         nn_budget = None
 
 
         # initialize deep sort
-        model_filename = 'model_data/mars-small128.pb'
+        # model_filename = 'model_data/mars-small128.pb'
         self.deepsortEncoder = generate_detections.create_box_encoder(model_filename, batch_size=1)
         # calculate cosine distance metric
         metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
@@ -181,11 +184,11 @@ class DeepsortYolo:
         colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
         # run non-maxima supression
-        boxs = np.array([d.tlwh for d in detections])
+        box = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
         classes = np.array([d.class_name for d in detections])
         nms_max_overlap = 1.0
-        indices = preprocessing.non_max_suppression(boxs, classes, nms_max_overlap, scores)
+        indices = preprocessing.non_max_suppression(box, classes, nms_max_overlap, scores)
         detections = [detections[i] for i in indices]       
 
         # Call the tracker
@@ -193,7 +196,8 @@ class DeepsortYolo:
         self.deepsortTracker.update(detections)
 
         # update tracks
-        frame_bbox_list = []
+        data = {}
+        output = pd.DataFrame([])
         for track in self.deepsortTracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue 
@@ -204,13 +208,19 @@ class DeepsortYolo:
             color = colors[int(track.track_id) % len(colors)]
             color = [i * 255 for i in color]
  
-            self.DrawBbox(frame, bbox[0], bbox[1], bbox[2], bbox[3], class_name, track.track_id, 0, color, 2)
-            frame_bbox_list.append(bbox)
-
+            self.DrawBbox(frame, bbox[0], bbox[1], bbox[2], bbox[3], class_name, track.track_id, color, 2)
+            data['bb_left'] = int(bbox[0])
+            data['bb_top'] = int(bbox[1])
+            data['bb_right'] = int(bbox[2])
+            data['bb_bottom'] =int(bbox[3])
+            data['category'] = class_name
+            data['object_id'] = int(track.track_id)
+            output = output.append(data, ignore_index=True)
+            
         result = np.asarray(frame)
 
-        # print(frame_bbox_list)
-        return result, frame_bbox_list
+        # print(df_frame_data)
+        return result, output
 
     def SelectObjects(self, bboxes, scores, classes, availabe_objects, class_names, allowed_classes):
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
@@ -230,7 +240,7 @@ class DeepsortYolo:
         scores = np.delete(scores, deleted_indx, axis=0)
         return bboxes, scores, names
 
-    def DrawBbox(self, frame, bb_left, bb_top, bb_right, bb_bottom, category, object_id, vel, color, thickness):
+    def DrawBbox(self, frame, bb_left, bb_top, bb_right, bb_bottom, category, object_id, color, thickness):
         top = int(bb_top)
         left = int(bb_left)
         bottom = int(bb_bottom)
@@ -245,7 +255,6 @@ class DeepsortYolo:
     
         cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
         cv2.circle(frame, (center_x, center_y), 4, (0, 0, 255), -1)
-        # print(categories)
 
         return frame
 
