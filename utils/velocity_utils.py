@@ -1,41 +1,47 @@
 import pandas as pd
 import numpy as np
+from utils.filtering_utils import Filters
 
 class VelocityUtils:
     def __init__(self):
         return None
 
-    def find_mid(self, a, b):
+    def FindMidPoint(self, a, b):
         c = (a.astype(float) + b.astype(float))/2
-        return c
+        return c.astype(int, errors='ignore')
 
-    def find_delta(self, x):
+    def FindPosDiff(self, x):
         dx = x.diff()
         dx[0] = np.nan
         dx.fillna(method='backfill', inplace=True)
-        return dx
+        return dx.astype(int, errors='ignore')
 
-    def find_vel(self, vx, vy):
+    def FindVel(self, vx,vy):
         vel = np.sqrt(vx * vx + vy * vy).round(2)
         return vel#, vx, vy
 
-    def add_vel_to_df(self, df, fps, scale):
-        for id in df['object_id'].unique():
-            mask = (df['object_id']==id)
-            sub_df = df[mask]
-            x  = self.find_mid(sub_df['bb_top'], sub_df['bb_bottom'])
-            y  = self.find_mid(sub_df['bb_left'], sub_df['bb_right'])
-            dx = self.find_delta(x)
-            dy = self.find_delta(y)
-            vx = (dx * fps * scale)
-            vy = (dy * fps * scale)
-
-            df.loc[mask, 'x']  = x
-            df.loc[mask, 'y']  = y
-            df.loc[mask, 'dx'] = dx
-            df.loc[mask, 'dy'] = dy
-            df.loc[mask, 'vx'] = (dx * fps * scale)
-            df.loc[mask, 'vy'] = (dy * fps * scale)
-            df.loc[mask, 'vel']  = np.sqrt(vx * vx + vy * vy).round(2)
-
+    def AddVelocity(self, df, id, fps, scale, column_names):
+        mask = (df['object_id']==id)
+        sub_df = df[mask]
+        y  = self.FindMidPoint(sub_df[column_names[3]], sub_df[column_names[1]])
+        x  = self.FindMidPoint(sub_df[column_names[2]], sub_df[column_names[0]])
+        dx = self.FindPosDiff(x)
+        dy = self.FindPosDiff(y)
+        vx = (dx * fps * scale)
+        vy = (dy * fps * scale)
+        df.loc[mask, 'x']  = x
+        df.loc[mask, 'y']  = y
+        df.loc[mask, 'dx'] = dx
+        df.loc[mask, 'dy'] = dy
+        df.loc[mask, 'vx'] = vx
+        df.loc[mask, 'vy'] = vy
+        df.loc[mask, 'vel']  = self.FindVel(vx, vy)
         return df
+    
+    # def FilterVelocity(self, df, id, fps):
+    #     mask = (df['object_id']==id)
+    #     sub_df = df[mask]
+    #     vel = sub_df.loc[mask, 'vel']
+    #     df.loc[mask, 'vel_filt']  = Filters.ButterLowpass(vel, 0.5, fps, 1)
+    #     return df
+
