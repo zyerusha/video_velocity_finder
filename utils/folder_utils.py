@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+from sys import path
 import shutil
+import requests
 
 class FolderUtils:
     '''Utilities supporting files and folders'''
@@ -8,7 +10,8 @@ class FolderUtils:
     def __init__(self):
         return None
 
-    def ClearFileType(self, dir, ext):
+    [staticmethod]
+    def RemoveFilesOfType(dir, ext):
         files_in_directory = os.listdir(dir)
         filtered_files = [
             file for file in files_in_directory if file.endswith(ext)]
@@ -23,3 +26,14 @@ class FolderUtils:
             shutil.rmtree(dest) 
         shutil.copytree(src,dest)
         print(f'Copied folder {src} --> {dest}')
+
+
+    [staticmethod]
+    def GetFileFromWeb(url, dest):
+        dir = os.path.dirname(dest)
+        file_data = requests.get(url).content
+        if not os.path.exists(dir): 
+            os.mkdir(dir)
+
+        with open(dest, 'wb') as handler:
+            handler.write(file_data)
