@@ -156,7 +156,8 @@ class VideoUtils:
 
         return img, bbox_data
 
-    def GetVideoData(self, vidcap):
+    [staticmethod]
+    def GetVideoData(vidcap):
         fps = int(round(vidcap.get(cv2.CAP_PROP_FPS)))  # CV_CAP_PROP_FPS = Frame rate.
         total_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -166,7 +167,8 @@ class VideoUtils:
             f"Total frames in video: {total_frames} @ {fps} frames/sec")
         return fps, total_frames, frame_size
 
-    def GetStartEndCount(self, fps, total_frames, start_time_sec, duration_sec=None):
+    [staticmethod]
+    def GetStartEndCount(fps, total_frames, start_time_sec, duration_sec=None):
         start_count = int(start_time_sec * fps)
         if(total_frames < start_count):
             start_count = 0
@@ -180,7 +182,7 @@ class VideoUtils:
             print('running full video')
         return start_count, end_count
 
-    @staticmethod
+    [staticmethod]
     def AddTimestampToName(name, start_time_sec, duration_sec):
         timestamp = str(int(start_time_sec)) + '-' + str(int(start_time_sec + duration_sec)) + '_'
         name = timestamp + name
@@ -194,8 +196,8 @@ class VideoUtils:
         # Open original video
         video_in = cv2.VideoCapture(orig_video)
         if video_in.isOpened():
-            fps, total_frames, frame_size = self.GetVideoData(video_in)
-            start_count, end_count = self.GetStartEndCount(
+            fps, total_frames, frame_size = VideoUtils.GetVideoData(video_in)
+            start_count, end_count = VideoUtils.GetStartEndCount(
                 fps, total_frames, start_time_sec, duration_sec)
 
             count = start_count
@@ -251,7 +253,7 @@ class VideoUtils:
             raise Exception(f"File not found: {full_new_name}")
 
         video_in = cv2.VideoCapture(full_orig_name)
-        fps, total_frames, frame_size = self.GetVideoData(video_in)
+        fps, total_frames, frame_size = VideoUtils.GetVideoData(video_in)
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
         video_out = cv2.VideoWriter(
             full_new_name, fourcc, desired_fps, frame_size)
