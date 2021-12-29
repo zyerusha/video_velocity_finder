@@ -148,7 +148,7 @@ class VideoUtils:
             bb_right = df_ann.iloc[j]['bb_right']
             category = df_ann.iloc[j]['category']
             object_id = int(df_ann.iloc[j]['object_id'])
-            vel = df_ann.iloc[j]['vel']
+            vel = 0;#df_ann.iloc[j]['vel']
             img = self.AddSingleAnnotation(
                 img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, box_thickness)
 
