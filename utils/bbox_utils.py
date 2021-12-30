@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+from utils.video_utils import VideoUtils
+import os
+from sys import path
 
 class Bbox:
     def __init__(self, x1 : int, y1 : int, x2 : int, y2 : int):
@@ -41,6 +44,8 @@ class Bbox:
         iou = self.IntersectionArea(bbox) / self.UnionArea(bbox)
         return iou
 
+class Evaluate:
+
     [staticmethod]
     def GetMaxCorrelation(bb_gt, pred_bboxes, frame):
         max_iou = 0.0
@@ -58,3 +63,57 @@ class Bbox:
                 max_info = [frame, bb_gt, bb, iou]
 
         return found, max_info
+
+    [staticmethod]
+    def AddIouToFrame(img, df_info):
+        for index, row in df_info.iterrows():
+            bb_gt = row['gt bbox']
+            text = "IOU: {iou:.2f}".format(iou = row['iou'])
+            bb = Bbox(bb_gt[0],bb_gt[1],bb_gt[2],bb_gt[3])
+            color = (0, 255, 255)
+            cv2.putText(img, text,(bb.left + 10, bb.bottom - 10),0, 0.5, color,1)
+        return img
+
+    [staticmethod]
+    def AddIouToVideo(output_dir, orig_v_full_path, df_info):
+        if (not orig_v_full_path):
+            raise Exception(f"File not found: {orig_v_full_path}")
+
+        # Open original video
+        video_in = cv2.VideoCapture(orig_v_full_path)
+        if video_in.isOpened():
+            fps, total_frames, frame_size = VideoUtils.GetVideoData(video_in)
+            count = 0
+            # setting CV_CAP_PROP_POS_FRAMES at count
+            video_in.set(cv2.CAP_PROP_POS_FRAMES, count)
+            output_dir = os.path.dirname(orig_v_full_path)
+            full_filename = os.path.join(output_dir, 'iou_' + os.path.basename(orig_v_full_path))
+            if os.path.exists(full_filename):
+                os.remove(full_filename)
+
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            video_out = cv2.VideoWriter(
+                full_filename, fourcc, int(fps), frame_size)
+
+            i = 0
+            while (True):
+                success, img = video_in.read()
+                if(success):
+                    height, width, layers = img.shape
+                    image_size = (width, height)
+
+                    # All bounding box info for this frame
+                    # Add all annotations to the frame
+                    df_img = df_info[df_info['frame idx'] == count]
+                    img = Evaluate.AddIouToFrame(img, df_img)
+                    i += 1
+                    video_out.write(img)
+                    count += 1
+
+                else:
+                    break
+
+            video_in.release()  # done with original video
+            video_out.release()
+
+            print("Done: Created video: " + full_filename)

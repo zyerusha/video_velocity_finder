@@ -250,8 +250,8 @@ class DeepsortYolo:
 
         text = ""#'Id: ' + str(object_id)
         cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
-        cv2.rectangle(frame, (left, top-30), (left+(len(category)+len(str(object_id)))*17, top), color, -1)     
-        cv2.putText(frame, category + "-" + str(object_id),(left, top-10),0, 0.75, (255,255,255),2)
+        cv2.rectangle(frame, (left, top-20), (left+(len(category)+len(str(object_id)))*17, top), color, -1)     
+        cv2.putText(frame, str(category).upper() + "-" + str(object_id),(left, top-5),0, 0.5, (255,255,255),1)
     
         cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
         cv2.circle(frame, (center_x, center_y), 4, (0, 0, 255), -1)

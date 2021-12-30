@@ -84,7 +84,7 @@ class VideoUtils:
                 img, bbox_data[j], bbox_thickness)
         return img
 
-    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, thickness):
+    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, thickness):
         top = int(bb_top)
         left = int(bb_left)
         bottom = int(bb_bottom)
@@ -94,9 +94,9 @@ class VideoUtils:
 
         # print(f'{left},{top},{right},{bottom}')
         color = (0, 255, 255)
-        text = 'Id: ' + str(object_id)
+        text = 'ID: ' + str(object_id)
         if(bool(self.annotationCategoryDict)):
-            text = text + '\n' + category
+            text = text + '- ' + category
             category_code = int(self.annotationCategoryDict[category])
             if (category_code == 0):
                 color = (0, 255, 255)
@@ -120,22 +120,10 @@ class VideoUtils:
         cv2.rectangle(img, (left, top), (right, bottom), color, thickness)
         cv2.circle(img, (center_x, center_y), 3, (255, 0, 0), -1)
         # print(categories)
-
-        if(vel != None):
-            text = text + '\n' + str(vel)
-
-        img = self.PrintText(img, text, right, top, 10, 1,
-                             cv2.FONT_HERSHEY_COMPLEX, 0.5, color)
-
-        return img
-
-    def PrintText(self, img, text, x, y, offset = 0, thickness = 1, font = cv2.FONT_HERSHEY_COMPLEX, fontscale = 0.5, color = (0, 255, 255)):
-        label_width, label_height = cv2.getTextSize(
-            text, font, fontscale, thickness)[0]
-
-        for i, line in enumerate(text.split('\n')):
-            pos = int(y + i*(label_height + offset/2))
-            cv2.putText(img, line, (x+offset, pos), font, fontscale, color, 1)
+        offset = max(right - left, len(text) * 10)
+        cv2.rectangle(img, (left, top), (right, top + 10), color, -1)     
+        cv2.putText(img, text,(left + 10, top + 10),0, 0.5, (0,0,255),1)
+    
 
         return img
 
@@ -148,9 +136,8 @@ class VideoUtils:
             bb_right = df_ann.iloc[j]['bb_right']
             category = df_ann.iloc[j]['category']
             object_id = int(df_ann.iloc[j]['object_id'])
-            vel = 0;#df_ann.iloc[j]['vel']
             img = self.AddSingleAnnotation(
-                img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, vel, box_thickness)
+                img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, box_thickness)
 
             bbox_data.append([bb_left, bb_top, bb_right, bb_bottom])
 
