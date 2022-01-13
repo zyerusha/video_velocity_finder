@@ -7,6 +7,7 @@ from app_utils.image_utils import ImageUtils
 from deepsort_yolo import DeepsortYolo
 import cv2
 import pandas as pd
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from absl import app, flags, logging
@@ -39,7 +40,7 @@ flags.DEFINE_integer('duration', -1, 'Duration time of video [sec], -1 = full vi
 flags.DEFINE_string('output_dir', '.', 'Path to output directory')
 flags.DEFINE_integer('select_id', -1, 'Object ID to follow')
 flags.DEFINE_bool('process_video', False, 'does video need reprocessing or use csv if existing')
-flags.DEFINE_float('cam_tilt', 60, 'Camera tilt angle in deg [face down = 0, forward = 90]')
+flags.DEFINE_float('cam_tilt', 60, 'Camera tilt angle in deg from horizon')
 flags.DEFINE_float('cam_height', 11.5, 'Camera hight above object [m]')
 flags.DEFINE_float('cam_fov', 41.1, 'Camera field of view deg')
 flags.DEFINE_float('cam_focal', -1, 'Camera focal length [m]')
@@ -84,7 +85,7 @@ def ProcessVideo(src_video, video_dest_path, model_dir, starttime, duration):
         logging.info(f"Start processing video...")
         output_video_file, trk_bbox = deepsortYolo.ProcessVideo(model_dir, model_filename, src_video,
                                                                 video_dest_path, output_video_file, starttime, video_duration, save_images=False)
-        
+
         print(trk_bbox.head(10))
         trk_bbox.to_csv(tracker_file_csv, index=False)
         logging.info(f"Done processing video")
@@ -148,6 +149,7 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
         video_out = cv2.VideoWriter(output_video_file, fourcc, int(fps), frame_size)
         video_in.set(cv2.CAP_PROP_POS_FRAMES, count)
         i = 0
+
         while (True):
             success, img = video_in.read()
 
@@ -159,7 +161,7 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
                 # All bounding box info for this frame
                 # Add all annotations to the frame
                 df_img = df[df['Frame'] == count]
-  
+
                 for i in range(len(df_img)):
                     background_color = ImageUtils.ColorGenerator(i)
                     text_color = (255, 255, 255)
@@ -171,8 +173,11 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
                     txt1 = str(category).upper() + "-" + str(int(object_id))
 
                     txt2 = ""
-                    if(df_img.iloc[i]["vel"] > 0):
-                        txt2 = 'Vel: ' + str(df_img.iloc[i]["vel"])
+
+                    velocity = df_img.iloc[i]["vel"]
+                    filt_velocity = df_img.iloc[i]["filt_vel"]
+                    if(velocity > 0):
+                        txt2 = 'Vel: ' + str(velocity) + " / " + str(filt_velocity)
 
                     fontFace = cv2.FONT_HERSHEY_SIMPLEX
                     fontScale = 0.5
@@ -214,6 +219,8 @@ def main(_argv):
     src_video = '../sample_datasets/VIRAT/' + video_name + '/' + video_name + '.mp4'
 
     src_video = './src_videos/VIRAT_S_050000_07_001014_001126.mp4'
+    src_video = './src_videos/video_20190905091750_1.mp4'
+    
     video_dest_path = FLAGS.output_dir  # location where to place processed videos/data
     video_start = FLAGS.starttime
     video_duration = FLAGS.duration

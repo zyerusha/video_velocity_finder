@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import math
-
+from app_utils.filtering_utils import Filters
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -33,9 +33,17 @@ class VelocityUtils:
         df.loc[mask, 'dx'] = dx.round(2)
         df.loc[mask, 'dy'] = dy.round(2)
         df.loc[mask, 'd'] = d.round(2)
-        vel = round(d * fps * scale * unit_scale, 2)
+        vel = round(d * fps * scale * unit_scale, 1)
         vel[vel < 1] = 0
+
+        if(len(vel) > 10):
+            filt_vel = Filters.ButterLowpass(vel, 1, fps, 1)
+        else:
+            filt_vel = vel
+
         df.loc[mask, 'vel'] = vel
+        df.loc[mask, 'filt_vel'] = filt_vel.round(1)
+
         df.replace(np.nan, 0)
         return df
 
@@ -78,15 +86,15 @@ class VelocityUtils:
         # - Distance between object and camera (D) based on camera height (H), field of view angle of the camera (Tc), angle of the camera (Tv)
         # Perpendicular view is used to calibrate estimated speed to standard unit
 
-        Tv = camera_tilt_angle_deg
+        Tv = 90 - abs(camera_tilt_angle_deg)  # in camera_tilt_angle_deg, camera down is negative
         v = vert_image_dim  # vertical dimension of 35 mm image format which can be found fromcamera specifications.
         f = cam_focal_length  # focal length of the camera
-        H = cam_height  # height of camera above object
+        H = abs(cam_height)  # height of camera above object
 
         if((f > 0) and (v > 0)):
-            Tc = 2 * math.degrees(math.atan(v/(2*f)))  # field of view angle of the camera (deg)
+            Tc = abs(2 * math.degrees(math.atan(v/(2*f))))  # field of view angle of the camera (deg)
         else:
-            Tc = cam_fov_deg  # field of view angle of the camera  (deg)
+            Tc = abs(cam_fov_deg)  # field of view angle of the camera  (deg)
 
         T = Tv + Tc/2
         D = round(H * math.tan(math.radians(T)), 3)  # distance between object and camera
@@ -96,9 +104,3 @@ class VelocityUtils:
         print(f"Tv: {Tv},  f: {f},  v: {v},  I_height: {image_height},   H: {H},  Tc: {Tc},  T: {T},  P: {P},  D: {D},   k: {k}")
         return k
 
-    # def FilterVelocity(self, df, id, fps):
-    #     mask = (df['object_id']==id)
-    #     sub_df = df[mask]
-    #     vel = sub_df.loc[mask, 'vel']
-    #     df.loc[mask, 'vel_filt']  = Filters.ButterLowpass(vel, 0.5, fps, 1)
-    #     return df
