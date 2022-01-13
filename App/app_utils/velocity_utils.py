@@ -20,7 +20,7 @@ class VelocityUtils:
         dx.fillna(0, inplace=True)
         return dx.astype(int, errors='ignore')
 
-    def AddVelocity(self, df, id, fps, scale, unit_scale):
+    def AddVelocity(self, df, id, fps, scale):
         mask = (df['object_id'] == id)
         sub_df = df[mask]
         x = sub_df.apply(lambda row: VelocityUtils.FindMidPoint(row["bb_left"], row["bb_right"]), axis=1)
@@ -33,13 +33,14 @@ class VelocityUtils:
         df.loc[mask, 'dx'] = dx.round(2)
         df.loc[mask, 'dy'] = dy.round(2)
         df.loc[mask, 'd'] = d.round(2)
-        vel = round(d * fps * scale * unit_scale, 1)
+        vel = round(d * fps * scale, 1)
         vel[vel < 1] = 0
-
         if(len(vel) > 10):
-            filt_vel = Filters.ButterLowpass(vel, 1, fps, 1)
+            filt_vel = Filters.ButterLowpass(vel, fps/60, fps, 1)
         else:
             filt_vel = vel
+
+        filt_vel[filt_vel < 1] = 0
 
         df.loc[mask, 'vel'] = vel
         df.loc[mask, 'filt_vel'] = filt_vel.round(1)
@@ -77,7 +78,6 @@ class VelocityUtils:
         elif (car_scale > 0):
             scale = car_scale
 
-        print(f"Scale: {scale} m/pixel")
         return scale
 
     def CalculateScaleCameraProperites(self, camera_tilt_angle_deg, cam_height, image_height, cam_fov_deg, cam_focal_length=-1, vert_image_dim=-1):
@@ -103,4 +103,3 @@ class VelocityUtils:
 
         print(f"Tv: {Tv},  f: {f},  v: {v},  I_height: {image_height},   H: {H},  Tc: {Tc},  T: {T},  P: {P},  D: {D},   k: {k}")
         return k
-

@@ -98,13 +98,13 @@ def GetFps(src_video):
     video_in = cv2.VideoCapture(src_video)
     fps = 0
     if video_in.isOpened():
-        fps = VideoUtils.GetVideoData(video_in)
+        fps, total_frames, frame_size = VideoUtils.GetVideoData(video_in)
         video_in.release()
         success = True
     else:
         logging.warn(f"Can't open video {src_video}")
 
-    return success, fps
+    return success, fps, total_frames, frame_size
 
 
 def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, starttime, duration):
@@ -136,7 +136,7 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
         print(f"scale from camera properties:  {scale}")
 
         for id in df['object_id'].unique():
-            df = velUtils.AddVelocity(df, id, fps, scale, FLAGS.vel_unit_scale)
+            df = velUtils.AddVelocity(df, id, fps, scale)
 
         df.to_csv(bb_file, index=False)
         if(select_id >= 0):
@@ -174,9 +174,10 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
 
                     txt2 = ""
 
-                    velocity = df_img.iloc[i]["vel"]
-                    filt_velocity = df_img.iloc[i]["filt_vel"]
-                    if(velocity > 0):
+                    velocity = round(df_img.iloc[i]["vel"] * FLAGS.vel_unit_scale,1)
+                    filt_velocity = round(df_img.iloc[i]["filt_vel"] * FLAGS.vel_unit_scale,1)
+                    vel_display_limit = 1
+                    if((filt_velocity > vel_display_limit) and (velocity > vel_display_limit)):
                         txt2 = 'Vel: ' + str(velocity) + " / " + str(filt_velocity)
 
                     fontFace = cv2.FONT_HERSHEY_SIMPLEX
@@ -219,15 +220,15 @@ def main(_argv):
     src_video = '../sample_datasets/VIRAT/' + video_name + '/' + video_name + '.mp4'
 
     src_video = './src_videos/VIRAT_S_050000_07_001014_001126.mp4'
-    src_video = './src_videos/video_20190905091750_1.mp4'
+    # src_video = './src_videos/video_20190905091750_1.mp4'
     
     video_dest_path = FLAGS.output_dir  # location where to place processed videos/data
     video_start = FLAGS.starttime
     video_duration = FLAGS.duration
-    print(video_start)
-    print(video_duration)
     print("App started")
-    success, fps = GetFps(src_video)
+
+    success, fps, total_frames, frame_size = GetFps(src_video)
+    print(f"fps: {fps}, total_frames: {total_frames}, frame_size: {frame_size}, video_start: {video_start}, video_duration: {video_duration}")
     if(not success):
         print(f"Can't open video {src_video}")
 
