@@ -15,12 +15,7 @@ class VelocityUtils:
         c = (a + b)/2
         return c
 
-    def FindPosDiff(self, x):
-        dx = x.diff()
-        dx.fillna(0, inplace=True)
-        return dx.astype(int, errors='ignore')
-
-    def AddVelocity(self, df, id, fps, scale):
+    def AddVelocity(self, df, id, fps, scale, image_size):
         mask = (df['object_id'] == id)
         sub_df = df[mask]
         x = sub_df.apply(lambda row: VelocityUtils.FindMidPoint(row["bb_left"], row["bb_right"]), axis=1)
@@ -35,15 +30,22 @@ class VelocityUtils:
         df.loc[mask, 'd'] = d.round(2)
         vel = round(d * fps * scale, 1)
         vel[vel < 1] = 0
+        x_norm = x/image_size[0]
+        y_norm = y/image_size[1]
+        factor = -1.8 * y_norm + 1.9 # applying factor to adjust for object postion in the image
+        adj_vel = vel * factor
+
         if(len(vel) > 10):
-            filt_vel = Filters.ButterLowpass(vel, fps/60, fps, 1)
+            filt_vel = Filters.ButterLowpass(adj_vel, 2*fps/60, fps, 1)
         else:
-            filt_vel = vel
+            filt_vel = adj_vel
 
         filt_vel[filt_vel < 1] = 0
 
-        df.loc[mask, 'vel'] = vel
+        df.loc[mask, 'raw_vel'] = vel
+        df.loc[mask, 'max_vel'] = vel.cummax()
         df.loc[mask, 'filt_vel'] = filt_vel.round(1)
+        df.loc[mask, 'adj_vel'] = adj_vel.round(1)
 
         df.replace(np.nan, 0)
         return df

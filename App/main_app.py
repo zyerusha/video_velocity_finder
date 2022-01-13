@@ -22,7 +22,7 @@ from shutil import copy2
 from sys import path
 from yaml import SafeLoader, load
 from PIL import ImageFont
-
+import matplotlib.pyplot as plt
 import sys
 import traceback
 
@@ -37,15 +37,17 @@ import traceback
 
 flags.DEFINE_integer('starttime', 0, 'Start time of video [sec]')
 flags.DEFINE_integer('duration', -1, 'Duration time of video [sec], -1 = full video')
-flags.DEFINE_string('output_dir', '.', 'Path to output directory')
+flags.DEFINE_string('output_dir', './output', 'Path to output directory')
 flags.DEFINE_integer('select_id', -1, 'Object ID to follow')
 flags.DEFINE_bool('process_video', False, 'does video need reprocessing or use csv if existing')
-flags.DEFINE_float('cam_tilt', 60, 'Camera tilt angle in deg from horizon')
-flags.DEFINE_float('cam_height', 11.5, 'Camera hight above object [m]')
+flags.DEFINE_float('cam_tilt', 30, 'Camera tilt angle in deg from horizon')
+flags.DEFINE_float('cam_height', 15, 'Camera hight above object [m]')
 flags.DEFINE_float('cam_fov', 41.1, 'Camera field of view deg')
 flags.DEFINE_float('cam_focal', -1, 'Camera focal length [m]')
 flags.DEFINE_float('vert_image_dim', -1, 'Vertical dimension of 35 mm image format')
-flags.DEFINE_float('vel_unit_scale', 1, 'scale to convert velocity units')
+flags.DEFINE_float('vel_unit_scale', 2.23694, 'scale to convert velocity units')
+
+flags.DEFINE_bool('create_vel_video', True, 'Disables the creation of a velocity video')
 
 vUtils = VideoUtils()
 deepsortYolo = DeepsortYolo()
@@ -77,6 +79,7 @@ def ProcessVideo(src_video, video_dest_path, model_dir, starttime, duration):
     print(filename)
     tracker_file_csv = filename + '.csv'
     output_video_file = filename + pathlib.Path(src_video).suffix
+    print(tracker_file_csv)
     if (not os.path.exists(tracker_file_csv)) or (FLAGS.process_video):
         model_filename = 'yolo_params/mars-small128.pb'
         if os.path.exists(output_video_file):
@@ -136,76 +139,90 @@ def AddVelocitiesToVideo(src_video, video_dest_path, bb_file, select_id, startti
         print(f"scale from camera properties:  {scale}")
 
         for id in df['object_id'].unique():
-            df = velUtils.AddVelocity(df, id, fps, scale)
+            df = velUtils.AddVelocity(df, id, fps, scale, frame_size)
 
         df.to_csv(bb_file, index=False)
+        print(f"updated file: {bb_file}")
         if(select_id >= 0):
-            df = pd.DataFrame(df[(df['object_id'] == select_id)])
-            df.to_csv(os.path.splitext(bb_file)[0] + "ID-" + str(select_id) + '.csv', index=False)
+            df_sub = pd.DataFrame(df[(df['object_id'] == select_id)])
+            object_csv_filename = os.path.splitext(bb_file)[0] + "ID-" + str(select_id) + '.csv'
+            df_sub.to_csv(object_csv_filename, index=False)
+            print(f"Created file: {object_csv_filename}")
 
         start_count, end_count = VideoUtils.GetStartEndCount(fps, total_frames, starttime, video_duration)
         count = start_count
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        video_out = cv2.VideoWriter(output_video_file, fourcc, int(fps), frame_size)
+
         video_in.set(cv2.CAP_PROP_POS_FRAMES, count)
         i = 0
 
-        while (True):
-            success, img = video_in.read()
+        if(FLAGS.create_vel_video):
+            video_out = cv2.VideoWriter(output_video_file, fourcc, int(fps), frame_size)
+            while (True):
+                success, img = video_in.read()
 
-            if(success):
-                if((count % 25) == 0):
-                    percent_complete = ((count-start_count)/(end_count-start_count))*100
-                    logging.info(f"Created frame id {count:2d}, {count/fps:0.2f} sec in video; completed:  {percent_complete:0.1f} %")
+                if(success):
+                    if((count % 25) == 0):
+                        percent_complete = ((count-start_count)/(end_count-start_count))*100
+                        logging.info(f"Created frame id {count:2d}, {count/fps:0.2f} sec in video; completed:  {percent_complete:0.1f} %")
 
-                # All bounding box info for this frame
-                # Add all annotations to the frame
-                df_img = df[df['Frame'] == count]
+                    # All bounding box info for this frame
+                    # Add all annotations to the frame
+                    df_img = df[df['Frame'] == count]
 
-                for i in range(len(df_img)):
-                    background_color = ImageUtils.ColorGenerator(i)
-                    text_color = (255, 255, 255)
-                    text_color = (0, 255, 255)
-                    x = int(df_img.iloc[i]["center_x"])
-                    y = int(df_img.iloc[i]['center_y'])
-                    category = df_img.iloc[i]['category']
-                    object_id = df_img.iloc[i]['object_id']
-                    txt1 = str(category).upper() + "-" + str(int(object_id))
+                    for i in range(len(df_img)):
+                        background_color = ImageUtils.ColorGenerator(i)
+                        text_color = (255, 255, 255)
+                        text_color = (0, 255, 255)
+                        x = int(df_img.iloc[i]["center_x"])
+                        y = int(df_img.iloc[i]['center_y'])
+                        category = df_img.iloc[i]['category']
+                        object_id = df_img.iloc[i]['object_id']
+                        txt1 = str(category).upper() + "-" + str(int(object_id))
 
-                    txt2 = ""
+                        txt2 = ""
 
-                    velocity = round(df_img.iloc[i]["vel"] * FLAGS.vel_unit_scale,1)
-                    filt_velocity = round(df_img.iloc[i]["filt_vel"] * FLAGS.vel_unit_scale,1)
-                    vel_display_limit = 1
-                    if((filt_velocity > vel_display_limit) and (velocity > vel_display_limit)):
-                        txt2 = 'Vel: ' + str(velocity) + " / " + str(filt_velocity)
+                        velocity = round(df_img.iloc[i]["adj_vel"] * FLAGS.vel_unit_scale,1)
+                        filt_velocity = round(df_img.iloc[i]["filt_vel"] * FLAGS.vel_unit_scale,1)
+                        vel_display_limit = 1
+                        if((filt_velocity > vel_display_limit) and (velocity > vel_display_limit)):
+                            txt2 = 'Vel: ' + str(velocity) + " / " + str(filt_velocity)
 
-                    fontFace = cv2.FONT_HERSHEY_SIMPLEX
-                    fontScale = 0.5
-                    thickness = 2
-                    size_txt1 = cv2.getTextSize(txt1, fontFace, fontScale, thickness)
-                    size_txt2 = cv2.getTextSize(txt2, fontFace, fontScale, thickness)
+                        fontFace = cv2.FONT_HERSHEY_SIMPLEX
+                        fontScale = 0.5
+                        thickness = 2
+                        size_txt1 = cv2.getTextSize(txt1, fontFace, fontScale, thickness)
+                        size_txt2 = cv2.getTextSize(txt2, fontFace, fontScale, thickness)
 
-                    _x11 = x + 10
-                    _y11 = y
-                    _x12 = _x11 + max(size_txt1[0][0], size_txt2[0][0])
-                    _y12 = _y11 + (size_txt1[0][1] + size_txt2[0][1]) + 15
-                    _x21 = _x11
-                    _y21 = _y12 - 5
-                    # cv2.rectangle(img, (_x11, _y11), (_x12, _y12), background_color, cv2.FILLED)
-                    cv2.putText(img, txt1, (_x11, (_y11+15)), fontFace, fontScale, text_color, thickness)
-                    cv2.putText(img, txt2, (_x21, _y21), fontFace, fontScale, text_color, thickness)
-                    cv2.circle(img, (x, y), 4, (0, 0, 255), -1)
-                video_out.write(img)
+                        _x11 = x + 10
+                        _y11 = y
+                        _x12 = _x11 + max(size_txt1[0][0], size_txt2[0][0])
+                        _y12 = _y11 + (size_txt1[0][1] + size_txt2[0][1]) + 15
+                        _x21 = _x11
+                        _y21 = _y12 - 5
+                        # cv2.rectangle(img, (_x11, _y11), (_x12, _y12), background_color, cv2.FILLED)
+                        cv2.putText(img, txt1, (_x11, (_y11+15)), fontFace, fontScale, text_color, thickness)
+                        cv2.putText(img, txt2, (_x21, _y21), fontFace, fontScale, text_color, thickness)
+                        cv2.circle(img, (x, y), 4, (0, 0, 255), -1)
+                        if (select_id == object_id):
+                            ImageUtils.DrawBbox(img, df_img.iloc[i]["bb_left"],df_img.iloc[i]["bb_top"],df_img.iloc[i]["bb_right"],df_img.iloc[i]["bb_bottom"], text_color)
 
-                count += 1
-                if(count > end_count):
+
+                    video_out.write(img)
+
+                    count += 1
+                    if(count > end_count):
+                        break
+                else:
                     break
-            else:
-                break
 
-        video_in.release()  # done with original video
-        video_out.release()
+            video_out.release()            
+            
+        else:
+            output_video_file = ""
+
+
+    video_in.release()  # done with original video
     logging.info(f"Done adding velocity")
     cv2.destroyAllWindows()
     return output_video_file, df
@@ -220,13 +237,13 @@ def main(_argv):
     src_video = '../sample_datasets/VIRAT/' + video_name + '/' + video_name + '.mp4'
 
     src_video = './src_videos/VIRAT_S_050000_07_001014_001126.mp4'
-    # src_video = './src_videos/video_20190905091750_1.mp4'
+    src_video = './src_videos/video_20190905091750_1.mp4'
     
     video_dest_path = FLAGS.output_dir  # location where to place processed videos/data
     video_start = FLAGS.starttime
     video_duration = FLAGS.duration
     print("App started")
-
+    print(f"selected_id: {FLAGS.select_id}")
     success, fps, total_frames, frame_size = GetFps(src_video)
     print(f"fps: {fps}, total_frames: {total_frames}, frame_size: {frame_size}, video_start: {video_start}, video_duration: {video_duration}")
     if(not success):
@@ -239,7 +256,19 @@ def main(_argv):
 
     video_out, df = AddVelocitiesToVideo(src_video, video_dest_path, bb_file, FLAGS.select_id, video_start, video_duration)
     print(f"Created video: {video_out}")
-    print(df.head(100))
+
+    df_sub = pd.DataFrame(df[(df['object_id'] == FLAGS.select_id)])
+    print(df_sub.tail(50))
+
+    # for id in df['object_id'].unique():
+    #     mask = (df['object_id'] == id)
+    #     sub_df = df[mask]
+    #     # plt.plot(sub_df["Frame"], sub_df["vel"])
+        
+    #     if (sub_df[(sub_df['category'] == "person")]):
+    #         plt.plot(sub_df["Frame"], sub_df["filt_vel"])
+        
+    # plt.show()
 
     duration = time.time() - start_time
     print(f"Completed {duration} seconds")
