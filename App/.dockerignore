@@ -1,0 +1,20 @@
+Dockerfile
+README.md
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.pytest_cache
+
+.git
+.ipynb_checkpoints
+notebooks
+unused
+.DS_Store
+.gitignore
+env.*
+devops
+
+# To prevent storing dev/temporary container data
+*.csv
+tmp
