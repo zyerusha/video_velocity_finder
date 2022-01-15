@@ -237,7 +237,7 @@ def main(_argv):
     src_video = '../sample_datasets/VIRAT/' + video_name + '/' + video_name + '.mp4'
 
     src_video = './src_videos/VIRAT_S_050000_07_001014_001126.mp4'
-    src_video = './src_videos/video_20190905091750_1.mp4'
+    # src_video = './src_videos/video_20190905091750_1.mp4'
     
     video_dest_path = FLAGS.output_dir  # location where to place processed videos/data
     video_start = FLAGS.starttime

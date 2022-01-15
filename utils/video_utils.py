@@ -6,16 +6,17 @@ import numpy as np
 import json
 from pathlib import Path
 from time import time
-#from PIL import ImageGrab #from pip install pillow
+# from PIL import ImageGrab #from pip install pillow
 import pyscreenshot as ImageGrab
 # from video_utils_virat import YoloUtils
+
 
 class VideoUtils:
     '''Utilities supporting the video and image manipulation'''
 
     annotationCategoryDict = {}
 
-    def CombineImages(self, img_array, full_filename, fps, frame_size):
+    def CombineImages(self, img_array, full_filename, fps, frame_size) -> None:
         print("Combining images to: " + full_filename)
         out = cv2.VideoWriter(
             full_filename, cv2.VideoWriter_fourcc(*'DIVX'), fps, frame_size)
@@ -29,7 +30,7 @@ class VideoUtils:
         out.release()
         print("Created video: " + full_filename)
 
-    def CreateImagesArray(self, frame_file_names, cnt):
+    def CreateImagesArray(self, frame_file_names, cnt) -> None:
 
         img_array = []
         for i in range(cnt):
@@ -42,7 +43,7 @@ class VideoUtils:
 
         return img_array, image_size
 
-    def CreateVideo(self, frame_file_names, fps, full_filename, framelimit=3000):
+    def CreateVideo(self, frame_file_names, fps, full_filename, framelimit=3000) -> None:
         total_cnt = len(frame_file_names)
         filename, file_extension = os.path.splitext(full_filename)
         print(f"Found {total_cnt} images for this video recording.")
@@ -78,13 +79,13 @@ class VideoUtils:
 
             self.CombineImages(img_array, full_video_name, fps, img_size)
 
-    def AddAllFrameAnnotations(self, img, bbox_data, bbox_thickness):
+    def AddAllFrameAnnotations(self, img, bbox_data, bbox_thickness) -> None:
         for j in range(len(bbox_data)):
             img = self.AddSingleAnnotation(
                 img, bbox_data[j], bbox_thickness)
         return img
 
-    def AddSingleAnnotation(self, img, bb_top, bb_left, bb_bottom, bb_right, category, object_id, thickness):
+    def AddSingleAnnotation(self, img, bb_top: int, bb_left: int, bb_bottom: int, bb_right: int, category, object_id, thickness) -> None:
         top = int(bb_top)
         left = int(bb_left)
         bottom = int(bb_bottom)
@@ -121,13 +122,12 @@ class VideoUtils:
         cv2.circle(img, (center_x, center_y), 3, (255, 0, 0), -1)
         # print(categories)
         offset = max(right - left, len(text) * 10)
-        cv2.rectangle(img, (left, top), (right, top + 10), color, -1)     
-        cv2.putText(img, text,(left + 10, top + 10),0, 0.5, (0,0,255),1)
-    
+        cv2.rectangle(img, (left, top), (right, top + 10), color, -1)
+        cv2.putText(img, text, (left + 10, top + 10), 0, 0.5, (0, 0, 255), 1)
 
         return img
 
-    def AddAllFrameAnnotations(self, img, df_ann, box_thickness):
+    def AddAllFrameAnnotations(self, img, df_ann, box_thickness) -> None:
         bbox_data = []
         for j in range(len(df_ann)):
             bb_top = df_ann.iloc[j]['bb_top']
@@ -144,8 +144,10 @@ class VideoUtils:
         return img, bbox_data
 
     [staticmethod]
-    def GetVideoData(vidcap):
-        fps = int(round(vidcap.get(cv2.CAP_PROP_FPS)))  # CV_CAP_PROP_FPS = Frame rate.
+
+    def GetVideoData(vidcap) -> None:
+        # CV_CAP_PROP_FPS = Frame rate.
+        fps = int(round(vidcap.get(cv2.CAP_PROP_FPS)))
         total_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -155,7 +157,8 @@ class VideoUtils:
         return fps, total_frames, frame_size
 
     [staticmethod]
-    def GetStartEndCount(fps, total_frames, start_time_sec, duration_sec=None):
+
+    def GetStartEndCount(fps, total_frames, start_time_sec, duration_sec=None) -> None:
         start_count = int(start_time_sec * fps)
         if(total_frames < start_count):
             start_count = 0
@@ -170,12 +173,14 @@ class VideoUtils:
         return start_count, end_count
 
     [staticmethod]
-    def AddTimestampToName(name, start_time_sec, duration_sec):
-        timestamp = str(int(start_time_sec)) + '-' + str(int(start_time_sec + duration_sec)) + '_'
+
+    def AddTimestampToName(name, start_time_sec, duration_sec) -> None:
+        timestamp = str(int(start_time_sec)) + '-' + \
+            str(int(start_time_sec + duration_sec)) + '_'
         name = timestamp + name
         return name
 
-    def AnnotateVideo(self, output_dir, orig_video, output_video, df_ann, start_time_sec=0, duration_sec=None, save_images=False):
+    def AnnotateVideo(self, output_dir, orig_video, output_video, df_ann, start_time_sec=0, duration_sec=None, save_images=False) -> None:
         if (not orig_video):
             raise Exception(f"File not found: {orig_video}")
 
@@ -193,7 +198,8 @@ class VideoUtils:
             video_in.set(cv2.CAP_PROP_POS_FRAMES, count)
 
             fourcc = cv2.VideoWriter_fourcc(*"XVID")
-            video_out = cv2.VideoWriter(output_video, fourcc, int(fps), frame_size)
+            video_out = cv2.VideoWriter(
+                output_video, fourcc, int(fps), frame_size)
 
             i = 0
             while (True):
@@ -233,7 +239,7 @@ class VideoUtils:
         cv2.destroyAllWindows()
         return output_video, bbox_data
 
-    def ChangeVideoFrameRate(self, full_orig_name, full_new_name, desired_fps, start_time_sec=0, duration_sec=None):
+    def ChangeVideoFrameRate(self, full_orig_name, full_new_name, desired_fps, start_time_sec=0, duration_sec=None) -> None:
         if (not full_orig_name):
             raise Exception(f"File not found: {full_orig_name}")
         if (not full_new_name):
@@ -276,7 +282,7 @@ class VideoUtils:
         print(f'created video: {full_new_name} @ {desired_fps} fps')
         cv2.destroyAllWindows()
 
-    def WindowCapture(self, x1, y1, x2, y2):
+    def WindowCapture(self, x1, y1, x2, y2) -> None:
         screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))  # X1,Y1,X2,Y2
         screenshot = np.array(screenshot)
         screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
@@ -287,7 +293,7 @@ class ImageUtils:
     def __init__(self):
         return None
 
-    def StackImages(self, scale, imgArray):
+    def StackImages(self, scale, imgArray) -> None:
         rows = len(imgArray)
         cols = len(imgArray[0])
         rowsAvailable = isinstance(imgArray[0], list)
@@ -325,6 +331,7 @@ class ImageUtils:
             ver = hor
         return ver
 
+
 class Bbox:
     def __init__(self, x1, y1, x2, y2):
         self.left = min(x1, x2)
@@ -354,6 +361,7 @@ class Bbox:
         '''Returns intersection over union'''
         iou = self.IntersectionArea(bbox) / self.UnionArea(bbox)
         return iou
+
 
 class DirectoryUtils:
     '''Utilities supporting files and folders'''
