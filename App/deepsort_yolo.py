@@ -26,14 +26,22 @@ class DeepsortYolo:
 
     deepsortEncoder = None
     deepsortTracker = None
+    myProgress = 0
 
     def __init__(self):
         return None
+
+    def GetProgress(self):
+        return self.myProgress
+    
+    def SetProgress(self, progress):
+        self.myProgress = progress
 
     def ProcessVideo(self, yolo_weight_file, model_filename, orig_video, output_dir, output_video, starttime, duration,  save_images=False):
         if (not orig_video):
             raise Exception(f"File not found: {orig_video}")
 
+        self.myProgress = 0
         saved_model_loaded = tf.saved_model.load(
             yolo_weight_file, tags=[tag_constants.SERVING])
         yolo_model = saved_model_loaded.signatures['serving_default']
@@ -78,13 +86,12 @@ class DeepsortYolo:
                         cv2.imwrite(output_dir + str(frame_count) + ".jpg", result)
 
                     frame_count += 1
+                    percent_complete = ((frame_count-start_count)/(end_count-start_count))*100
 
                     if((frame_count % 25) == 0):
-                        percent_complete = (
-                            (frame_count-start_count)/(end_count-start_count))*100
-                        print(
-                            f"Created frame id {frame_count}, {frame_count/fps:0.2f} sec in video; Objects Cnt: {len(names)} completed:  {percent_complete:0.1f} %")
+                         print(f"Created frame id {frame_count}, {frame_count/fps:0.2f} sec in video; Objects Cnt: {len(names)} completed:  {percent_complete:0.1f} %")
 
+                    self.myProgress = percent_complete
                     if(frame_count > end_count):
                         break
 

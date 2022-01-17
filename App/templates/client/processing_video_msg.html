@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+
+    </head>
+
+    <title>Processing Video</title>
+
+    <body onload="start_processing()" onload="check_progress()">
+
+        <h3 style="color: black">
+            Processing of the video has begun.<br><br>
+            This can take several minutes and your patience is appreciated.<br><br>
+            Please do NOT refresh the screen. <br><br>
+            This screen will change, letting you know once it's done.<br><br>
+        </h3>
+        <h3 style="color: black">
+            In the meantime, feel free to grab a cup of coffee or something. <br><br>
+            That's what I usually do...
+        </h3>
+        <h1>
+            :)
+        </h1>
+        <dl>
+            <dt> <label for="progress_bar1">Running YOLO & DeepSORT on {{filename}}:</label> </dt>
+            <dt> <progress id="progress_bar1" value="0" max="100" position:absolute>0% </progress></dt>
+            <dt><br></dt>
+            <dt> <label for="progress_bar2">Creating velocity video:</label></dt>
+            <dt> <progress id="progress_bar2" value="0" max="100" position:absolute> 0% </progress> </dt>
+        </dl>
+        <script>
+            function start_processing() {
+                var request = new XMLHttpRequest();
+
+                request.onload = function () {
+                    if (request.responseText == "restarting") {
+                        // Do nothing
+                    }
+                    else if (request.status == 200) {
+                        // long process finished successfully, redirect user
+                        window.location = '/processing_done/' + request.responseText;
+                    }
+                    else {
+                        alert('Something went wrong. code: ' + str(request.status));
+                    }
+                };
+
+                request.onerror = function () {
+                    alert('Request Error Code: ' + str(request.status));
+                };
+                request.open('POST', '/processing_file/<video_name>')
+                request.send();
+            }
+            function check_progress() {
+
+                var status_request = new XMLHttpRequest();
+                status_request.onload = function () {
+                    var progress_values = status_request.responseText.split(',');
+                    document.getElementById('progress_bar1').value = progress_values[0].trim();
+                    document.getElementById('progress_bar2').value = progress_values[1].trim();
+                }
+                status_request.open('GET', '/get_status')
+                status_request.send();
+                setTimeout(check_progress, 1000)
+            }
+            setTimeout(check_progress, 1000)
+        </script>
+    </body>
+
+</html>
