@@ -5,7 +5,7 @@
 
     </head>
 
-    <title>Processing Video</title>
+    <title>DeepOVel: Processing Video</title>
 
     <body onload="start_processing()" onload="check_progress()">
 
@@ -28,6 +28,17 @@
             <dt><br></dt>
             <dt> <label for="progress_bar2">Creating velocity video:</label></dt>
             <dt> <progress id="progress_bar2" value="0" max="100" position:absolute> 0% </progress> </dt>
+            <dt>
+                <video width="640" height="480" autoplay muted loop>
+                    <source src="\static\videos\VIRAT.mp4" type="video/mp4">
+                </video>
+                <video width="640" height="480" autoplay muted loop>
+                    <source src="\static\videos\VIRAT_vel.mp4" type="video/mp4">
+                </video>
+                <video width="640" height="480" autoplay muted loop>
+                    <source src="\static\videos\VIRAT_gt.mp4" type="video/mp4">
+                </video>
+            </dt>
         </dl>
         <script>
             function start_processing() {
@@ -62,9 +73,9 @@
                 }
                 status_request.open('GET', '/get_status')
                 status_request.send();
-                setTimeout(check_progress, 1000)
+                setTimeout(check_progress, 5000)
             }
-            setTimeout(check_progress, 1000)
+            setTimeout(check_progress, 5000)
         </script>
     </body>
 

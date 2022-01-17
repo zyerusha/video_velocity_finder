@@ -10,12 +10,12 @@ import flask
 from flask import Flask, flash, request, redirect, url_for, render_template
 from flask import send_file, send_from_directory, safe_join, abort
 from werkzeug.utils import secure_filename
-from vel_calc_main import VideoVelCalc
+from DeepOVel import DeepOVel
 import threading
 
 app = Flask(__name__)
 app.uploadVideoName = ""
-app.videoVelCalc = VideoVelCalc()
+app.deepOVel = DeepOVel()
 
 app.config.from_object("config.TestingConfig")
 
@@ -71,6 +71,7 @@ def download(filename):
     except FileNotFoundError:
         abort(404)
 
+
 @app.route('/static/')
 def dirtree():
     path = os.path.join(os.getcwd(), 'static')
@@ -79,29 +80,30 @@ def dirtree():
 
 @app.route('/get_status')
 def get_status():
-    yolo_progress, vel_progress = app.videoVelCalc.GetProgress()
+    yolo_progress, vel_progress = app.deepOVel.GetProgress()
     progress_str = str(yolo_progress) + ',' + str(vel_progress)
-    if(app.videoVelCalc.IsRunning):
+    if(app.deepOVel.IsRunning):
         return progress_str
     else:
         return redirect('/')
+
 
 @app.route('/processing_file/<video_name>', methods=['GET', 'POST'])
 def process_file(video_name):
     if request.method == 'GET':
         app.uploadVideoName = video_name
-        app.backgroundThread = threading.Thread(target=app.videoVelCalc.GetProgress, args=(), daemon=True)
+        app.backgroundThread = threading.Thread(target=app.deepOVel.GetProgress, args=(), daemon=True)
         app.backgroundThread.start()
         return render_template('client/processing_video_msg.html', filename=video_name)
 
     if request.method == 'POST':
         full_upload_video_name = safe_join(app.config['UPLOAD_FOLDER'], app.uploadVideoName)
 
-        # if(not app.videoVelCalc.IsRunning):
-        app.videoVelCalc = VideoVelCalc()
-        app.videoVelCalc.SetCameraParams(30, 15)
-        app.videoVelCalc.SetVelCalibarion(2.23694)
-        download_video_name = app.videoVelCalc.Run(full_upload_video_name, app.config['DOWNLOAD_FOLDER'], -1, 0)
+        # if(not app.DeepOVel.IsRunning):
+        app.deepOVel = DeepOVel()
+        app.deepOVel.SetCameraParams(30, 15)
+        app.deepOVel.SetVelCalibarion(2.23694)
+        download_video_name = app.deepOVel.Run(full_upload_video_name, app.config['DOWNLOAD_FOLDER'], -1, 0)
         filename = os.path.basename(download_video_name)
         return filename
     return render_template('client/processing_video_msg.html', filename=video_name)

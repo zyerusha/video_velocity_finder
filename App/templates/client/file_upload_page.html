@@ -1,23 +1,26 @@
 <!doctype html>
 <html lang="en">
-  <title>Welcome to DeepOVel</title>
+  <title>DeepOVel: Welcome</title>
 
   <body>
-    <h1 style="color: rgb(255, 0, 0)">
-      <p>
-        Deep Velocity of Object in Video (DeepVoV)<br><br>
-        Deep Object Velocity in Video (DeepOVV)<br><br>
-        Deep Object Velocity in Video (DeepOVel)<br><br>
+    <h1>
+      <p style="color: rgb(255, 0, 0)">
+        Deep Object Velocity in Video (DeepOVel)<br>
       </p>
-      </h>
-      <h4 style="color: black">
-        Please upload an .mp4 video file for processing:
-      </h4>
+    </h1>
+    <h4 style="color: black">
+      Please upload an .mp4 video file for processing:
+    </h4>
 
-      <form method=post enctype=multipart/form-data>
-        <input type=file name=file>
-        <input type=submit value=Upload>
-      </form>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    <br>
+    <video width="320" height="240" controls>
+      <source src="\static\uploads\VIRAT.mp4" type="video/mp4">
+    </video>
+
   </body>
 
 </html>
