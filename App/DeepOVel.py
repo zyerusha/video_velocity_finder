@@ -55,14 +55,15 @@ class DeepOVel:
     def GetProgress(self):
         return self.deepsortYolo.GetProgress(), self.myProgress
 
-    def SetCameraParams(self, cam_tilt, cam_height, cam_fov=41.1, cam_focal=-1):
-        self.cam_tilt = cam_tilt  # 'Camera tilt angle in deg from horizon')
-        self.cam_height = cam_height  # 'Camera hight above object [m]')
-        self.cam_fov = cam_fov  # 'Camera field of view deg')
-        self.cam_focal = cam_focal  # 'Camera focal length [m]')
+    def SetCameraParams(self, cam_tilt, cam_height, cam_fov=41.1, cam_focal=-1, vert_image_dim=-1):
+        self.cam_tilt = float(cam_tilt)  # 'Camera tilt angle in deg from horizon')
+        self.cam_height = float(cam_height)  # 'Camera hight above object [m]')
+        self.cam_fov = float(cam_fov)  # 'Camera field of view deg')
+        self.cam_focal = float(cam_focal)  # 'Camera focal length [m]')
+        self.vert_image_dim = float(vert_image_dim)  # 'Camera focal length [m]')
 
     def SetVelCalibarion(self, scaling_units):
-        self.vel_unit_scale = scaling_units
+        self.vel_unit_scale = float(scaling_units)
 
     def GetVideoDuration(self, src_video, start_time, duration):
         video_in = cv2.VideoCapture(src_video)

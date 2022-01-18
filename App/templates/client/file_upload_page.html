@@ -8,19 +8,55 @@
         Deep Object Velocity in Video (DeepOVel)<br>
       </p>
     </h1>
-    <h4 style="color: black">
-      Please upload an .mp4 video file for processing:
-    </h4>
 
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
+
+
+    <form method=POST enctype=multipart/form-data>
+      <dl>
+        <h4 style="color: black">
+          Update video properties if needed:
+        </h4>
+        <dt> <label for="CamTilt">Camera tilt from horizon [deg]</label> </dt>
+        <dt> <input name="CamTilt" type="number" value="30"> </dt>
+        <br>
+        <dt> <label for="CamHeight">Camera height [m]</label> </dt>
+        <dt> <input name="CamHeight" type="number" value="11"> </dt>
+        <br>
+        <dt> <label for="VelScale">Unit conversion from m/sec <br> (e.g. 2.23694 for mph) </label></dt>
+        <dt> <input name="VelScale" type="number" value="2.23694"> </dt>
+        <br>
+        <dt> <label for="CamFov">Camera field of view [deg]</label></dt>
+        <dt> <input name="CamFov" type="number" value="41.1"> </dt>
+        <br>
+        <dt> <label for="StartTime">Start time of video [sec]<br>(0 = beginning of video)</label></dt>
+        <dt> <input name="StartTime" type="number" value="0"> </dt>
+        <br>
+        <dt> <label for="VideoDuration">Duration of video to process [sec]<br>(-1 = full video length) </label></dt>
+        <dt> <input name="VideoDuration" type="number" value="-1"> </dt>
+        <br>
+        <h4 style="color: black">
+          Optional (If the following are not = -1, they will override the Camera Field of View input):
+        </h4>
+        <dt> <label for="VertImageDim">Vertical dimension of 35 mm image format<br>(can be found from camera specifications)</label></dt>
+        <dt> <input name="VertImageDim" type="number" value="-1"> </dt>
+        <br>
+        <dt> <label for="CamFocalLength">Focal length of the camera [m]</label></dt>
+        <dt> <input name="CamFocalLength" type="number" value="-1"> </dt>
+        <br>
+      </dl>
+      <h4 style="color: black">
+        Please upload an .mp4 video file for processing:
+      </h4>
+
+      <input type=file name=file><br><br>
       <input type=submit value=Upload>
     </form>
-    <br>
-    <video width="320" height="240" controls>
-      <source src="\static\uploads\VIRAT.mp4" type="video/mp4">
+    <video width="640" height="480" autoplay muted loop>
+      <source src="\static\videos\VIRAT_S_000005_vel.mp4" type="video/mp4">
     </video>
-
+    <video width="320" height="240" autoplay muted loop>
+      <source src="\static\videos\VIRAT_S_000005.mp4" type="video/mp4">
+    </video>
   </body>
 
 </html>

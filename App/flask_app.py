@@ -15,6 +15,16 @@ import threading
 
 app = Flask(__name__)
 app.uploadVideoName = ""
+app.CamTilt = 0
+app.CamHeight = 0
+app.CamFov = 0
+app.VelScale = 0
+app.VertImageDim = -1  # vertical dimension of 35 mm image format which can be found from camera specifications.
+app.CamFocalLength = -1  # focal length of the camera
+app.StartTime = 0
+app.VideoDuration = -1
+
+
 app.deepOVel = DeepOVel()
 
 app.config.from_object("config.TestingConfig")
@@ -99,11 +109,13 @@ def process_file(video_name):
     if request.method == 'POST':
         full_upload_video_name = safe_join(app.config['UPLOAD_FOLDER'], app.uploadVideoName)
 
+        print(
+            f"Selected Params:  Tilt: {app.CamTilt}, height: {app.CamHeight}, scale: {app.VelScale}, FOV: {app.CamFov}, v: {app.VertImageDim}, f: {app.CamFocalLength}")
         # if(not app.DeepOVel.IsRunning):
         app.deepOVel = DeepOVel()
-        app.deepOVel.SetCameraParams(30, 15)
-        app.deepOVel.SetVelCalibarion(2.23694)
-        download_video_name = app.deepOVel.Run(full_upload_video_name, app.config['DOWNLOAD_FOLDER'], -1, 0)
+        app.deepOVel.SetCameraParams(app.CamTilt, app.CamHeight, app.CamFov, app.CamFocalLength, app.VertImageDim)
+        app.deepOVel.SetVelCalibarion(app.VelScale)
+        download_video_name = app.deepOVel.Run(full_upload_video_name, app.config['DOWNLOAD_FOLDER'], app.VideoDuration, app.StartTime)
         filename = os.path.basename(download_video_name)
         return filename
     return render_template('client/processing_video_msg.html', filename=video_name)
@@ -118,6 +130,18 @@ def upload_file():
             return redirect(request.url)
 
         file = request.files['file']
+
+        app.CamTilt = float(request.form['CamTilt'])
+        app.CamHeight = float(request.form['CamHeight'])
+        app.VelScale = float(request.form['VelScale'])
+
+        app.CamFov = float(request.form['CamFov'])
+        app.VertImageDim = float(request.form['VertImageDim'])
+        app.CamFocalLength = float(request.form['CamFocalLength'])
+
+        app.StartTime = float(request.form['StartTime'])
+        app.VideoDuration = float(request.form['VideoDuration'])
+
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
         if file.filename == '':

@@ -89,7 +89,7 @@ class VelocityUtils:
         # Perpendicular view is used to calibrate estimated speed to standard unit
 
         Tv = 90 - abs(camera_tilt_angle_deg)  # in camera_tilt_angle_deg, camera down is negative
-        v = vert_image_dim  # vertical dimension of 35 mm image format which can be found fromcamera specifications.
+        v = vert_image_dim  # vertical dimension of 35 mm image format which can be found from camera specifications.
         f = cam_focal_length  # focal length of the camera
         H = abs(cam_height)  # height of camera above object
 
