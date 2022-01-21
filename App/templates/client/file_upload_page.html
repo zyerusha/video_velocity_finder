@@ -16,17 +16,21 @@
         <h4 style="color: black">
           Update video properties if needed:
         </h4>
+
         <dt> <label for="CamTilt">Camera tilt from horizon [deg]</label> </dt>
         <dt> <input name="CamTilt" type="number" value="30"> </dt>
         <br>
         <dt> <label for="CamHeight">Camera height [m]</label> </dt>
         <dt> <input name="CamHeight" type="number" value="11"> </dt>
         <br>
-        <dt> <label for="VelScale">Unit conversion from m/sec <br> (e.g. 2.23694 for mph) </label></dt>
-        <dt> <input name="VelScale" type="number" value="2.23694"> </dt>
-        <br>
         <dt> <label for="CamFov">Camera field of view [deg]</label></dt>
-        <dt> <input name="CamFov" type="number" value="41.1"> </dt>
+        <dt> <input name="CamFov" type="number" value="41.1"></dt>
+        <dt> <img src="\static\videos\gifs\CameraSetup.jpg" height="300" /></dt>
+
+        <br>
+        <dt> <label for="VelScale">Desired speed unit conversion factor allowing to convert from m/sec<br> (e.g. 2.23694 will convert to mph, 1 will keep it in
+            m/sec) </label></dt>
+        <dt> <input name="VelScale" type="number" value="2.23694"> </dt>
         <br>
         <dt> <label for="StartTime">Start time of video [sec]<br>(0 = beginning of video)</label></dt>
         <dt> <input name="StartTime" type="number" value="0"> </dt>
